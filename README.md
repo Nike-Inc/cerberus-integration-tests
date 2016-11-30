@@ -1,8 +1,12 @@
-# Health Check Lambda for Prod Cerberus
+# Health Check Lambda for Cerberus
 
-This is a quick and dirty node lambda to run an end to end test of the general health of the production Cerberus environment.
-It checks that an ec2 instance or in this case a lambda can authenticate with Cerberus which will exercise CMS and its RDS DB.
-It then uses that auth token to read from the healthcheck sdb which will exercise and test that Vault and Consul are up and running.
+This is a quick and dirty Node Lambda to run an end-to-end test of the general health of a production 
+[Cerberus](http://engineering.nike.com/cerberus/) environment. It checks that an EC2 instance or in
+this case a Lambda can [authenticate](http://engineering.nike.com/cerberus/docs/architecture/authentication)
+with Cerberus which will exercise [CMS](https://github.com/Nike-Inc/cerberus-management-service) and its RDS DB. It then uses that auth
+token to read from the healthcheck Safe Deposit Box (SDB) which will exercise and test that Vault and Consul are up and running.
+
+To learn more about Cerberus, please see the [Cerberus website](http://engineering.nike.com/cerberus/).
 
 ## Building
 
