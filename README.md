@@ -95,8 +95,9 @@ To build run `npm run package` this will create a healthcheck.zip package that c
 1. Create a new 'GET' Method
 1. Choose the lambda function and the correct region
 1. Confirm the permission change
-1. Under 'Integration Response' configure a new mapping with the regex 'UNHEALTHY.*' mapped to 500 error code.
+1. Under 'Integration Response' configure a new mapping with the regex `(\n|.)+` mapped to 500 error code.
    1.  The lambda should return a 200 unless the regex matches.
+   1.  The regex `(\n|.)+` matches any error message including those from AWS.
 1. Use the test button to see it work
 1. Stage the API if you would like to make it public
 1. Setup the monitoring system of your choice to invoke the API endpoint periodically
