@@ -1,0 +1,35 @@
+---
+swagger: "2.0"
+basePath: "/cerberus"
+info:
+  title: "Cerberus Health Check"
+schemes:
+- "https"
+paths:
+  /healthcheck:
+    get:
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/Empty"
+        500:
+          description: "500 response"
+          schema:
+            $ref: "#/definitions/Empty"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+          UNHEALTHY.*:
+            statusCode: "500"
+        uri: arn:aws:apigateway:<<region>>:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<accountId>>:function:${stageVariables.LambdaFunctionName}/invocation
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        type: "aws"
+definitions:
+  Empty:
+    type: "object"
+    title: "Empty Schema"

@@ -1,7 +1,7 @@
 var request = require('request')
 var aws = require('aws-sdk')
 
-exports.handler = function(event, context, callback) {
+var handler = function(event, context, callback) {
     var unhealthy = function (msg) {
         callback("UNHEALTHY: " + msg, null)
     }
@@ -10,10 +10,10 @@ exports.handler = function(event, context, callback) {
         callback(null, msg)
     }
 
-    var region = ''
-    var acctId = ''
-    var roleName = ''
-    var host = ''
+    var region = process.env.REGION
+    var acctId = process.env.ACCOUNT_ID
+    var roleName = process.env.ROLE_NAME
+    var host = process.env.CERBERUS_URL
 
     // Step 1 Check that EC2 Authentication is working
     request({
@@ -30,6 +30,8 @@ exports.handler = function(event, context, callback) {
             unhealthy("Unable to authenticate again the CMS IAM Auth endpoint | " + JSON.stringify(err))
         }
 
+        console.log("retrieved encrypted iam auth info from CMS" + JSON.stringify(response) + JSON.stringify(data))
+
         var ciphertextBlob = new Buffer(data['auth_data'], 'base64')
         var kms = new aws.KMS({ apiVersion: '2014-11-01', region: region })
 
@@ -38,6 +40,8 @@ exports.handler = function(event, context, callback) {
             if (err) {
                 unhealthy("Unable to decrypt kms auth data from CMS IAM auth endpoint | " + JSON.stringify(err))
             }
+            console.log("retrieved decrypted iam auth info from KMS" + JSON.stringify(kmsResult))
+
             var token
 
             try {
@@ -58,6 +62,7 @@ exports.handler = function(event, context, callback) {
                     unhealthy("Unable to get health check data map from health check sdb, are Vault and Consul up and running? | " + JSON.stringify(err))
                 }
 
+                console.log("retrieved Healthcheck data from Vault" + JSON.stringify(response) + JSON.stringify(data))
                 var json = JSON.parse(body)
 
                 var value = undefined
@@ -86,3 +91,8 @@ exports.handler = function(event, context, callback) {
         })
     })
 };
+
+exports.handler = handler
+handler({}, {}, function (err, msg) {
+    console.log(err, msg)
+})
