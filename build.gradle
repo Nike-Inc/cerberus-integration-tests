@@ -1,18 +1,17 @@
-apply plugin: 'java'
+subprojects { subproject ->
+    apply plugin: 'java'
 
-repositories {
-    jcenter()
+    if (subproject.name.startsWith("cerberus-api-tests")) {
+        apply plugin: 'groovy'
+    }
+
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        compile 'org.slf4j:slf4j-api:1.7.21'
+
+        testCompile 'junit:junit:4.12'
+    }
 }
-
-dependencies {
-    compile 'org.slf4j:slf4j-api:1.7.21'
-
-    compile 'io.rest-assured:rest-assured:3.0.2'
-    compile 'io.rest-assured:json-schema-validator:3.0.2'
-
-    compile group: 'com.amazonaws', name: 'aws-java-sdk-kms', version: '1.11.76'
-    compile group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.11.76'
-
-    compile 'junit:junit:4.12'
-}
-

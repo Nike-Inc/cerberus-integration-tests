@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.nike.cerberus.api;
+package com.nike.cerberus.api
 
+import com.nike.cerberus.api.util.TestUtils;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.params.HttpParams;
@@ -23,36 +24,32 @@ import org.apache.http.params.HttpParams;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocket;
-import java.io.IOException;
-import java.net.Socket;
-import java.net.URL;
-import java.util.Collections;
-
+import javax.net.ssl.SSLSocket
 
 /**
  * https://sookocheff.com/post/api/rest-assured-tests-against-api-gateway/
  */
-public class GatewaySslSocketFactory extends SSLSocketFactory {
+class GatewaySslSocketFactory extends SSLSocketFactory {
 
     GatewaySslSocketFactory(SSLContext sslContext, X509HostnameVerifier hostnameVerifier) {
-        super(sslContext, hostnameVerifier);
+        super(sslContext, hostnameVerifier)
     }
 
     @Override
-    public Socket createSocket(HttpParams params) throws IOException {
-        SSLSocket sslSocket = (SSLSocket) super.createSocket(params);
+    Socket createSocket(HttpParams params) throws IOException {
+        SSLSocket sslSocket = (SSLSocket) super.createSocket(params)
 
         // Set the encryption protocol
-        sslSocket.setEnabledProtocols(new String[]{"TLSv1.2"});
+        String[] protocols = ["TLSv1.2"].toArray()
+        sslSocket.setEnabledProtocols(protocols)
 
         // Configure SNI
-        URL url = new URL(TestEnvVarUtils.getRequiredEnvVar("CERBERUS_API_URL", "The Cerberus API URL to Test"));
-        SNIHostName serverName = new SNIHostName(url.getHost());
-        SSLParameters sslParams = sslSocket.getSSLParameters();
-        sslParams.setServerNames(Collections.singletonList(serverName));
-        sslSocket.setSSLParameters(sslParams);
+        URL url = new URL(TestUtils.getRequiredEnvVar("CERBERUS_API_URL", "The Cerberus API URL to Test"))
+        SNIHostName serverName = new SNIHostName(url.getHost())
+        SSLParameters sslParams = sslSocket.getSSLParameters()
+        sslParams.setServerNames(Collections.singletonList(serverName))
+        sslSocket.setSSLParameters(sslParams)
 
-        return sslSocket;
+        return sslSocket
     }
 }

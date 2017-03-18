@@ -1,0 +1,16 @@
+apply plugin: 'groovy'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.9'
+    testCompile 'io.rest-assured:rest-assured:3.0.2'
+    testCompile 'io.rest-assured:json-schema-validator:3.0.2'
+    testCompile group: 'com.amazonaws', name: 'aws-java-sdk-kms', version: '1.11.76'
+    testCompile group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.11.76'
+    testCompile group: 'org.testng', name: 'testng', version: '6.11'
+    testCompile group: 'org.jboss.aerogear', name: 'aerogear-otp-java', version: '1.0.0'
+
+}
