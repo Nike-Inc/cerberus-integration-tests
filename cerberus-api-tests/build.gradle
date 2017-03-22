@@ -14,3 +14,11 @@ dependencies {
     testCompile group: 'org.jboss.aerogear', name: 'aerogear-otp-java', version: '1.0.0'
 
 }
+
+test {
+    useTestNG()
+    testLogging {
+        showStandardStreams = true
+        events "passed", "skipped", "failed"
+    }
+}
