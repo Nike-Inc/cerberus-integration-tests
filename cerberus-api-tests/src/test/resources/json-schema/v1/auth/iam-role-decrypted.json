@@ -14,24 +14,24 @@
     "metadata": {
       "type": "object",
       "properties": {
-        "aws_account_id": {
-          "type": "string"
-        },
-        "aws_iam_role_name": {
-          "type": "string"
-        },
         "aws_region": {
           "type": "string"
         },
         "username": {
           "type": "string"
+        },
+        "is_admin": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "string"
         }
       },
       "required": [
-        "aws_account_id",
-        "aws_iam_role_name",
         "aws_region",
-        "username"
+        "username",
+        "is_admin",
+        "groups"
       ]
     },
     "lease_duration": {
