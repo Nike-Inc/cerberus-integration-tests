@@ -17,6 +17,7 @@ class CerberusIamApiTests {
     private String roleName
     private String region
     private String cerberusAuthToken
+    private def cerberusAuthData
 
     private ObjectMapper mapper
 
@@ -25,7 +26,8 @@ class CerberusIamApiTests {
         mapper = new ObjectMapper()
         TestUtils.configureRestAssured()
         loadRequiredEnvVars()
-        cerberusAuthToken = retrieveIamAuthToken(accountId, roleName, region)
+        cerberusAuthData = retrieveIamAuthToken(accountId, roleName, region)
+        cerberusAuthToken = cerberusAuthData."client_token"
     }
 
     @AfterTest
@@ -47,5 +49,10 @@ class CerberusIamApiTests {
     @Test
     void "test that an authenticated IAM role can create, read, update then delete a secret node"() {
         'create, read, update then delete a secret node'(cerberusAuthToken)
+    }
+
+    @Test
+    void "test that an authenticated IAM role can create, read, update then delete a safe deposit box"() {
+        "create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }
 }

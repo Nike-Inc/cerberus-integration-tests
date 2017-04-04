@@ -15,7 +15,8 @@ import java.nio.ByteBuffer
 
 import static io.restassured.RestAssured.*
 import static io.restassured.module.jsv.JsonSchemaValidator.*
-import static org.junit.Assert.assertThat
+import static org.hamcrest.Matchers.*
+import static org.junit.Assert.*
 
 class CerberusApiActions {
 
@@ -41,7 +42,7 @@ class CerberusApiActions {
      * @param region The region to do iam auth with
      * @return The authentication token
      */
-    static String retrieveIamAuthToken(String accountId, String roleName, String region) {
+    static def retrieveIamAuthToken(String accountId, String roleName, String region) {
         // get the encrypted payload and validate response
         Response response =
         given()
@@ -75,7 +76,7 @@ class CerberusApiActions {
         // validate decrypted schema and return auth token
         String jsonString = new String(result.getPlaintext().array())
         assertThat(jsonString, matchesJsonSchemaInClasspath("json-schema/v1/auth/iam-role-decrypted.json"))
-        return new JsonSlurper().parseText(jsonString)."client_token"
+        return new JsonSlurper().parseText(jsonString)
     }
 
     static void createOrUpdateSecretNode(Map data, String path, String cerberusAuthToken) {
@@ -119,7 +120,7 @@ class CerberusApiActions {
                 .statusCode(404)
     }
 
-    static ResponseBody loginUser(String username, String password) {
+    static JsonPath loginUser(String username, String password) {
         def body =
         given()
                 .header("Authorization", "Basic ${"$username:$password".bytes.encodeBase64()}")
@@ -139,14 +140,14 @@ class CerberusApiActions {
         } else {
             throw new IllegalStateException("unreconized status from login user: ${status}")
         }
-        return body
+        return body.jsonPath()
     }
 
     static void logoutUser(String cerberusAuthToken) {
         deleteAuthToken(cerberusAuthToken)
     }
 
-    static String finishMfaUserAuth(String stateToken, String deviceId, String otpToken) {
+    static JsonPath finishMfaUserAuth(String stateToken, String deviceId, String otpToken) {
         given()
                 .contentType("application/json")
                 .body([
@@ -161,6 +162,117 @@ class CerberusApiActions {
                 .contentType("application/json")
                 .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v2/auth/mfa_check.json"))
         .extract().
-                body().jsonPath().getString("data.client_token.client_token")
+                body().jsonPath()
+    }
+
+    static String createSdb(String cerberusAuthToken,
+                            String name,
+                            String description,
+                            String categoryId,
+                            String owner,
+                            List<Map<String, String>> userGroupPermissions,
+                            List<Map<String, String>> iamRolePermissions) {
+
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .contentType("application/json")
+                .body([
+                    name: name,
+                    description: description,
+                    'category_id': categoryId,
+                    owner: owner,
+                    'user_group_permissions': userGroupPermissions,
+                    'iam_role_permissions': iamRolePermissions
+                ])
+        .when()
+                .post("/v1/safe-deposit-box")
+        .then()
+                .statusCode(201)
+                .header('X-Refresh-Token', 'true')
+                .header('Location', not(isEmptyOrNullString()))
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/create_success.json"))
+        .extract().
+                body().jsonPath().getString("id")
+    }
+
+    static JsonPath readSdb(String cerberusAuthToken, String sdbId) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/safe-deposit-box/${sdbId}")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/read_success.json"))
+        .extract().
+                body().jsonPath()
+    }
+
+    static void updateSdb(String cerberusAuthToken,
+                          String sdbId,
+                          String description,
+                          String owner,
+                          List<Map<String, String>> userGroupPermissions,
+                          List<Map<String, String>> iamRolePermissions) {
+
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .contentType("application/json")
+                .body([
+                    description: description,
+                    owner: owner,
+                    'user_group_permissions': userGroupPermissions,
+                    'iam_role_permissions': iamRolePermissions
+                ])
+        .when()
+                .put("/v1/safe-deposit-box/${sdbId}")
+        .then()
+                .statusCode(204)
+                .header('X-Refresh-Token', 'true')
+    }
+
+    static void deleteSdb(String cerberusAuthToken, String sdbId) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .delete("/v1/safe-deposit-box/${sdbId}")
+        .then()
+                .statusCode(200)
+                .header('X-Refresh-Token', 'true')
+    }
+
+    static JsonPath getRoles(String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/role")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/role/get_roles_success.json"))
+        .extract().
+                body().jsonPath()
+    }
+
+    static JsonPath getCategories(String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/category")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/category/get_categories_success.json"))
+        .extract().
+                body().jsonPath()
+    }
+
+    static JsonPath listSdbs(String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/safe-deposit-box")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/list_success.json"))
+        .extract().
+                body().jsonPath()
     }
 }

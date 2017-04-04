@@ -15,12 +15,25 @@ class CerberusUserApiTests {
     private String otpDeviceId
     private String otpSecret
     private String cerberusAuthToken
+    private Map cerberusAuthData
 
     @BeforeTest
     void beforeTest() {
         TestUtils.configureRestAssured()
         loadRequiredEnvVars()
-        cerberusAuthToken = "login user with multi factor authentication (or skip mfa if not required) and return auth token"(username, password, otpSecret, otpDeviceId)
+        cerberusAuthData = auth()
+        cerberusAuthToken = cerberusAuthData.'client_token'
+    }
+
+    def auth(retryCount = 0) {
+        try {
+            "login user with multi factor authentication (or skip mfa if not required) and return auth data"(username, password, otpSecret, otpDeviceId)
+        } catch (Throwable t) {
+            if (retryCount < 3) {
+                sleep(5)
+                return auth(retryCount + 1)
+            } else {throw t}
+        }
     }
 
     @AfterTest
@@ -29,12 +42,12 @@ class CerberusUserApiTests {
     }
 
     @Test
-    void "test that an authenticated user can create, read, update then delete  a safe deposit box"() {
-        "create, read, update then delete a safe deposit box"(cerberusAuthToken)
+    void "test that an authenticated user can create, read, update then delete a safe deposit box"() {
+        "create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }
 
     @Test
-    void "test that an authenticated user can create, create, update then delete a secret node in a safe deposit box"() {
+    void "test that an authenticated user can create, update then delete a secret node in a safe deposit box"() {
         'create, read, update then delete a secret node'(cerberusAuthToken)
     }
 
