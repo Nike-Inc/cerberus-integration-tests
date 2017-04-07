@@ -244,7 +244,7 @@ class CerberusApiActions {
                 .get("${baseSdbApiPath}/${sdbId}")
         .then()
                 .statusCode(200)
-                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/read_success.json"))
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$baseSdbApiPath/read_success.json"))
         .extract().
                 body().jsonPath()
     }
