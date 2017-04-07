@@ -36,7 +36,7 @@ class CerberusCompositeApiActions {
         assertThatSecretNodeDoesNotExist(path, cerberusAuthToken)
     }
 
-    static void "create, read, list, update and then delete a safe deposit box"(Map cerberusAuthPayloadData) {
+    static void "create, read, list, update and then delete a safe deposit box"(Map cerberusAuthPayloadData, String baseSdbApiPath) {
         String cerberusAuthToken = cerberusAuthPayloadData.'client_token'
         String groups = cerberusAuthPayloadData.metadata.groups
         def group = groups.split(/,/)[0]
@@ -64,15 +64,9 @@ class CerberusCompositeApiActions {
                         'role_id': roleMap.read
                 ]
         ]
-        def iamRolePermissions = [
-                [
-                        "account_id": "1111111111",
-                        "iam_role_name": "fake_role",
-                        "role_id": roleMap.write
-                ]
-        ]
+        def iamRolePermissions = [getIamRolePermission(baseSdbApiPath, "1111111111", "fake_role", roleMap.write)]
 
-        def sdbId = createSdb(cerberusAuthToken, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
+        def sdbId = createSdb(cerberusAuthToken, name, description, categoryId, owner, baseSdbApiPath, userGroupPermissions, iamRolePermissions)
         JsonPath sdb = readSdb(cerberusAuthToken, sdbId)
 
         // verify that the sdb we created contains the data we expect
@@ -84,8 +78,7 @@ class CerberusCompositeApiActions {
         assertEquals(userGroupPermissions.get(0).name, sdb.getList('user_group_permissions').get(0).name)
         assertEquals(userGroupPermissions.get(0).'role_id', sdb.getList('user_group_permissions').get(0).'role_id')
         assertEquals(iamRolePermissions.size(), sdb.getList('iam_role_permissions').size())
-        assertEquals(iamRolePermissions.get(0).account_id, sdb.getList('iam_role_permissions').get(0).'account_id')
-        assertEquals(iamRolePermissions.get(0).'iam_role_name', sdb.getList('iam_role_permissions').get(0).'iam_role_name')
+        assertTrue(iamRolePermissionEquals(iamRolePermissions.get(0), sdb.getList('iam_role_permissions').get(0)))
         assertEquals(iamRolePermissions.get(0).'role_id', sdb.getList('iam_role_permissions').get(0).'role_id')
 
         // verify that the listing call contains our new SDB
@@ -111,12 +104,8 @@ class CerberusCompositeApiActions {
             name: 'bar',
             'role_id': roleMap.write
         ])
-        iamRolePermissions.add([
-                "account_id": "1111111111",
-                "iam_role_name": "fake_role2",
-                "role_id": roleMap.read
-        ])
-        updateSdb(cerberusAuthToken, sdbId, description, owner, userGroupPermissions, iamRolePermissions)
+        iamRolePermissions.add(getIamRolePermission(baseSdbApiPath, "1111111111", "fake_role2", roleMap.read))
+        updateSdb(cerberusAuthToken, sdbId, description, owner, baseSdbApiPath, userGroupPermissions, iamRolePermissions)
         JsonPath sdbUpdated = readSdb(cerberusAuthToken, sdbId)
 
         // verify that the sdbUpdated we created contains the data we expect
@@ -140,10 +129,10 @@ class CerberusCompositeApiActions {
         for (def expectedPerm : iamRolePermissions) {
             def found = false
             for (def actualPerm : sdbUpdated.getList('iam_role_permissions')) {
-                if (expectedPerm.iam_role_name == actualPerm.iam_role_name) {
+                if (expectedPerm.'iam_role_name' == actualPerm.'iam_role_name' ||
+                        expectedPerm.'iam_principal_arn' == actualPerm.'iam_principal_arn') {
                     found = true
-                    assertEquals(expectedPerm.'account_id', actualPerm.'account_id')
-                    assertEquals(expectedPerm.'role_id', actualPerm.'role_id')
+                    assertTrue(iamRolePermissionEquals(expectedPerm, actualPerm))
                 }
             }
             assertTrue("The expected user permission was not found in the actual results", found)
@@ -179,5 +168,36 @@ class CerberusCompositeApiActions {
 
             return mfaResp.get('data.client_token')
         }
+    }
+
+    private static Map getIamRolePermission(String baseSdbApiPath, String accountId, String roleName, role) {
+        if (baseSdbApiPath == V1_SAFE_DEPOSIT_BOX_PATH) {
+            return [
+                    "account_id": accountId,
+                    "iam_role_name": roleName,
+                    "role_id": role
+            ]
+        }
+        if (baseSdbApiPath == V2_SAFE_DEPOSIT_BOX_PATH) {
+            return [
+                    "iam_principal_arn": (String) "arn:aws:iam::$accountId:role/$roleName",
+                    "role_id": role
+            ]
+        }
+        return null
+    }
+
+    private static boolean iamRolePermissionEquals(def iamRolePermission1, def iamRolePermission2) {
+        if (iamRolePermission1.'account_id' == iamRolePermission2.'account_id' &&
+                iamRolePermission1.'iam_role_name' == iamRolePermission2.'iam_role_name') {
+
+            return true
+        }
+        if (iamRolePermission1.'iam_principal_arn' == iamRolePermission2.'iam_principal_arn') {
+
+            return true
+        }
+
+        return false
     }
 }
