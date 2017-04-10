@@ -37,7 +37,9 @@
         "aws_region",
         "username",
         "is_admin",
-        "groups"
+        "groups",
+        "aws_account_id",
+        "aws_iam_role_name"
       ]
     },
     "lease_duration": {
