@@ -21,7 +21,29 @@
     },
     "iam_role_permissions": {
       "id": "/properties/iam_role_permissions",
-      "items": {},
+      "items": {
+        "id": "/properties/iam_role_permissions/items",
+        "properties": {
+          "account_id": {
+            "id": "/properties/iam_role_permissions/items/properties/account_id",
+            "type": "string"
+          },
+          "iam_role_name": {
+            "id": "/properties/iam_role_permissions/items/properties/iam_role_name",
+            "type": "string"
+          },
+          "role_id": {
+            "id": "/properties/iam_role_permissions/items/properties/role_id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role_id",
+          "account_id",
+          "iam_role_name"
+        ],
+        "type": "object"
+      },
       "type": "array"
     },
     "id": {

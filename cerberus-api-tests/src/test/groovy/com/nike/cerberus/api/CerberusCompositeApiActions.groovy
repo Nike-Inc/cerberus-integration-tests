@@ -67,7 +67,7 @@ class CerberusCompositeApiActions {
         def iamRolePermissions = [getIamRolePermission(baseSdbApiPath, "1111111111", "fake_role", roleMap.write)]
 
         def sdbId = createSdb(cerberusAuthToken, name, description, categoryId, owner, baseSdbApiPath, userGroupPermissions, iamRolePermissions)
-        JsonPath sdb = readSdb(cerberusAuthToken, sdbId)
+        JsonPath sdb = readSdb(cerberusAuthToken, sdbId, baseSdbApiPath)
 
         // verify that the sdb we created contains the data we expect
         assertEquals(name, sdb.get('name'))
@@ -106,7 +106,7 @@ class CerberusCompositeApiActions {
         ])
         iamRolePermissions.add(getIamRolePermission(baseSdbApiPath, "1111111111", "fake_role2", roleMap.read))
         updateSdb(cerberusAuthToken, sdbId, description, owner, baseSdbApiPath, userGroupPermissions, iamRolePermissions)
-        JsonPath sdbUpdated = readSdb(cerberusAuthToken, sdbId)
+        JsonPath sdbUpdated = readSdb(cerberusAuthToken, sdbId, baseSdbApiPath)
 
         // verify that the sdbUpdated we created contains the data we expect
         assertEquals(name, sdbUpdated.get('name'))

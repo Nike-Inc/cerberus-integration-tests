@@ -24,14 +24,19 @@
       "items": {
         "id": "/properties/iam_role_permissions/items",
         "properties": {
-          "iam_role_arn": {
-            "id": "/properties/iam_role_permissions/items/properties/iam_role_arn",
+          "iam_principal_arn": {
+            "id": "/properties/iam_role_permissions/items/properties/iam_principal_arn",
             "type": "string"
           },
-          "required": [
-            "iam_principal_arn"
-          ]
+          "role_id": {
+            "id": "/properties/iam_role_permissions/items/properties/role_id",
+            "type": "string"
+          }
         },
+        "required": [
+          "role_id",
+          "iam_principal_arn"
+        ],
         "type": "object"
       },
       "type": "array"
