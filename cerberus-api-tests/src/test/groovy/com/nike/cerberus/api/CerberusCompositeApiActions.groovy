@@ -66,7 +66,8 @@ class CerberusCompositeApiActions {
         ]
         def iamRolePermissions = [getIamRolePermission(baseSdbApiPath, "1111111111", "fake_role", roleMap.write)]
 
-        def sdbId = createSdb(cerberusAuthToken, name, description, categoryId, owner, baseSdbApiPath, userGroupPermissions, iamRolePermissions)
+        def createdSdb = createSdb(cerberusAuthToken, name, description, categoryId, owner, baseSdbApiPath, userGroupPermissions, iamRolePermissions)
+        def sdbId = createdSdb.getString("id")
         JsonPath sdb = readSdb(cerberusAuthToken, sdbId, baseSdbApiPath)
 
         // verify that the sdb we created contains the data we expect

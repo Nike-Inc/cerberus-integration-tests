@@ -206,7 +206,7 @@ class CerberusApiActions {
                 body().jsonPath()
     }
 
-    static String createSdb(String cerberusAuthToken,
+    static JsonPath createSdb(String cerberusAuthToken,
                             String name,
                             String description,
                             String categoryId,
@@ -232,9 +232,9 @@ class CerberusApiActions {
                 .statusCode(201)
                 .header('X-Refresh-Token', 'true')
                 .header('Location', not(isEmptyOrNullString()))
-                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/create_success.json"))
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$baseSdbApiPath/create_success.json"))
         .extract().
-                body().jsonPath().getString("id")
+                body().jsonPath()
     }
 
     static JsonPath readSdb(String cerberusAuthToken, String sdbId, String baseSdbApiPath = V1_SAFE_DEPOSIT_BOX_PATH) {
