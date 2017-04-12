@@ -43,8 +43,8 @@ class CerberusUserApiTests {
 
     @Test
     void "test that an authenticated user can create, read, update then delete a safe deposit box"() {
-        "create, read, list, update and then delete a safe deposit box"(cerberusAuthData, V1_SAFE_DEPOSIT_BOX_PATH)
-        "create, read, list, update and then delete a safe deposit box"(cerberusAuthData, V2_SAFE_DEPOSIT_BOX_PATH)
+        "v1 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
+        "v2 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }
 
     @Test

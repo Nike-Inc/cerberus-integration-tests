@@ -9,16 +9,16 @@ import com.amazonaws.services.kms.model.DecryptResult
 import groovy.json.JsonSlurper
 import io.restassured.path.json.JsonPath
 import io.restassured.response.Response
-import io.restassured.response.ResponseBody
 
 import java.nio.ByteBuffer
 
-import static io.restassured.RestAssured.*
-import static io.restassured.module.jsv.JsonSchemaValidator.*
-import static org.hamcrest.Matchers.*
-import static org.junit.Assert.*
+import static io.restassured.RestAssured.given
+import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath
+import static org.hamcrest.Matchers.isEmptyOrNullString
+import static org.hamcrest.Matchers.not
+import static org.junit.Assert.assertThat
 
-class CerberusApiActions {
+class CerberusApiActionsV2 {
 
     public static String V1_SAFE_DEPOSIT_BOX_PATH = "/v1/safe-deposit-box"
     public static String V2_SAFE_DEPOSIT_BOX_PATH = "/v2/safe-deposit-box"
@@ -206,13 +206,14 @@ class CerberusApiActions {
                 body().jsonPath()
     }
 
-    static String createSdbV1(String cerberusAuthToken,
-                              String name,
-                              String description,
-                              String categoryId,
-                              String owner,
-                              List<Map<String, String>> userGroupPermissions,
-                              List<Map<String, String>> iamRolePermissions) {
+    static JsonPath createSdb(String cerberusAuthToken,
+                            String name,
+                            String description,
+                            String categoryId,
+                            String owner,
+                            String baseSdbApiPath,
+                            List<Map<String, String>> userGroupPermissions,
+                            List<Map<String, String>> iamRolePermissions) {
 
         given()
                 .header("X-Vault-Token", cerberusAuthToken)
@@ -226,43 +227,13 @@ class CerberusApiActions {
                     'iam_role_permissions': iamRolePermissions
                 ])
         .when()
-                .post(V1_SAFE_DEPOSIT_BOX_PATH)
+                .post(baseSdbApiPath)
         .then()
                 .statusCode(201)
                 .header('X-Refresh-Token', 'true')
                 .header('Location', not(isEmptyOrNullString()))
-                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$V1_SAFE_DEPOSIT_BOX_PATH/create_success.json"))
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$baseSdbApiPath/create_success.json"))
         .extract().
-                body().jsonPath().getString("id")
-    }
-
-    static JsonPath createSdbV2(String cerberusAuthToken,
-                              String name,
-                              String description,
-                              String categoryId,
-                              String owner,
-                              List<Map<String, String>> userGroupPermissions,
-                              List<Map<String, String>> iamRolePermissions) {
-
-        given()
-            .header("X-Vault-Token", cerberusAuthToken)
-            .contentType("application/json")
-            .body([
-                name: name,
-                description: description,
-                'category_id': categoryId,
-                owner: owner,
-                'user_group_permissions': userGroupPermissions,
-                'iam_role_permissions': iamRolePermissions
-            ])
-            .when()
-                .post(V2_SAFE_DEPOSIT_BOX_PATH)
-            .then()
-                .statusCode(201)
-                .header('X-Refresh-Token', 'true')
-                .header('Location', not(isEmptyOrNullString()))
-                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$V2_SAFE_DEPOSIT_BOX_PATH/create_success.json"))
-            .extract().
                 body().jsonPath()
     }
 
@@ -278,54 +249,47 @@ class CerberusApiActions {
                 body().jsonPath()
     }
 
-    static void updateSdbV1(String cerberusAuthToken,
-                            String sdbId,
-                            String description,
-                            String owner,
-                            List<Map<String, String>> userGroupPermissions,
-                            List<Map<String, String>> iamRolePermissions) {
+    static void updateSdb(String cerberusAuthToken,
+                          String sdbId,
+                          String description,
+                          String owner,
+                          String baseSdbApiPath,
+                          List<Map<String, String>> userGroupPermissions,
+                          List<Map<String, String>> iamRolePermissions) {
 
-        given()
-            .header("X-Vault-Token", cerberusAuthToken)
-            .contentType("application/json")
-            .body([
-                description: description,
-                owner: owner,
-                'user_group_permissions': userGroupPermissions,
-                'iam_role_permissions': iamRolePermissions
-            ])
-        .when()
-            .put("$V1_SAFE_DEPOSIT_BOX_PATH/${sdbId}")
-        .then()
-            .statusCode(204)
-            .header('X-Refresh-Token', 'true')
+        if (baseSdbApiPath == V1_SAFE_DEPOSIT_BOX_PATH) {
+            given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .contentType("application/json")
+                .body([
+                    description: description,
+                    owner: owner,
+                    'user_group_permissions': userGroupPermissions,
+                    'iam_role_permissions': iamRolePermissions
+                ])
+            .when()
+                .put("${baseSdbApiPath}/${sdbId}")
+            .then()
+                .statusCode(204)
+                .header('X-Refresh-Token', 'true')
+        } else {
+            given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .contentType("application/json")
+                .body([
+                    description: description,
+                    owner: owner,
+                    'user_group_permissions': userGroupPermissions,
+                    'iam_role_permissions': iamRolePermissions
+                ])
+            .when()
+                .put("${baseSdbApiPath}/${sdbId}")
+            .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$baseSdbApiPath/read_success.json"))
+                .header('X-Refresh-Token', 'true')
+        }
 
-    }
-
-    static JsonPath updateSdbV2(String cerberusAuthToken,
-                            String sdbId,
-                            String description,
-                            String owner,
-                            List<Map<String, String>> userGroupPermissions,
-                            List<Map<String, String>> iamRolePermissions) {
-
-        given()
-            .header("X-Vault-Token", cerberusAuthToken)
-            .contentType("application/json")
-            .body([
-                description: description,
-                owner: owner,
-                'user_group_permissions': userGroupPermissions,
-                'iam_role_permissions': iamRolePermissions
-            ])
-        .when()
-            .put("$V2_SAFE_DEPOSIT_BOX_PATH/${sdbId}")
-        .then()
-            .statusCode(200)
-            .header('X-Refresh-Token', 'true')
-            .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$V2_SAFE_DEPOSIT_BOX_PATH/read_success.json"))
-        .extract().
-            body().jsonPath()
     }
 
     static void deleteSdb(String cerberusAuthToken, String sdbId, String baseSdbApiPath = V1_SAFE_DEPOSIT_BOX_PATH) {
