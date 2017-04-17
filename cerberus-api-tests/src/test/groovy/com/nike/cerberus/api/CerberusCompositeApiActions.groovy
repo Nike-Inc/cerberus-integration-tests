@@ -59,10 +59,10 @@ class CerberusCompositeApiActions {
         String categoryId = catMap.Applications
         String owner = group
         def userGroupPermissions = [
-                [
-                        name: 'foo',
-                        'role_id': roleMap.read
-                ]
+            [
+                "name": 'foo',
+                "role_id": roleMap.read
+            ]
         ]
         def iamRolePermissions = [
             [
@@ -98,8 +98,8 @@ class CerberusCompositeApiActions {
         // update the sdb
         description = "${Lorem.getWords(60)}"
         userGroupPermissions.add([
-            name: 'bar',
-            'role_id': roleMap.write
+            "name": 'bar',
+            "role_id": roleMap.write
         ])
         iamRolePermissions.add([
             "account_id": "1111111111",
@@ -151,8 +151,8 @@ class CerberusCompositeApiActions {
         String owner = group
         def userGroupPermissions = [
             [
-                    name: 'foo',
-                    'role_id': roleMap.read
+                "name": 'foo',
+                "role_id": roleMap.read
             ]
         ]
         def iamRolePermissions = [
@@ -191,12 +191,12 @@ class CerberusCompositeApiActions {
         // update the sdb
         description = "${Lorem.getWords(60)}"
         userGroupPermissions.add([
-                name: 'bar',
-                'role_id': roleMap.write
+            "name": 'bar',
+            "role_id": roleMap.write
         ])
         iamRolePermissions.add([
-                "iam_principal_arn": "arn:aws:iam::1111111111:role/fake_role2",
-                "role_id": roleMap.read
+            "iam_principal_arn": "arn:aws:iam::1111111111:role/fake_role2",
+            "role_id": roleMap.read
         ])
         JsonPath sdbUpdatedUpdate = updateSdbV2(cerberusAuthToken, sdbId, description, owner, userGroupPermissions, iamRolePermissions)
 
