@@ -19,7 +19,7 @@
       "id": "/properties/description",
       "type": "string"
     },
-    "iam_role_permissions": {
+    "iam_principal_permissions": {
       "id": "/properties/iam_role_permissions",
       "items": {
         "id": "/properties/iam_role_permissions/items",
@@ -77,7 +77,7 @@
     "last_updated_ts",
     "user_group_permissions",
     "created_by",
-    "iam_role_permissions",
+    "iam_principal_permissions",
     "last_updated_by",
     "owner",
     "path",

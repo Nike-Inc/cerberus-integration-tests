@@ -242,7 +242,7 @@ class CerberusApiActions {
                               String categoryId,
                               String owner,
                               List<Map<String, String>> userGroupPermissions,
-                              List<Map<String, String>> iamRolePermissions) {
+                              List<Map<String, String>> iamPrincipalPermissions) {
 
         given()
             .header("X-Vault-Token", cerberusAuthToken)
@@ -253,7 +253,7 @@ class CerberusApiActions {
                 'category_id': categoryId,
                 owner: owner,
                 'user_group_permissions': userGroupPermissions,
-                'iam_role_permissions': iamRolePermissions
+                'iam_principal_permissions': iamPrincipalPermissions
             ])
             .when()
                 .post(V2_SAFE_DEPOSIT_BOX_PATH)
@@ -307,7 +307,7 @@ class CerberusApiActions {
                             String description,
                             String owner,
                             List<Map<String, String>> userGroupPermissions,
-                            List<Map<String, String>> iamRolePermissions) {
+                            List<Map<String, String>> iamPrincipalPermissions) {
 
         given()
             .header("X-Vault-Token", cerberusAuthToken)
@@ -316,7 +316,7 @@ class CerberusApiActions {
                 description: description,
                 owner: owner,
                 'user_group_permissions': userGroupPermissions,
-                'iam_role_permissions': iamRolePermissions
+                'iam_principal_permissions': iamPrincipalPermissions
             ])
         .when()
             .put("$V2_SAFE_DEPOSIT_BOX_PATH/${sdbId}")

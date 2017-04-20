@@ -76,7 +76,7 @@ class CerberusCompositeApiActions {
         JsonPath sdb = readSdb(cerberusAuthToken, sdbId, V1_SAFE_DEPOSIT_BOX_PATH)
 
         // verify that the sdb we created contains the data we expect
-        assertSafeDepositBoxHasFields(sdb, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
+        assertSafeDepositBoxV1HasFields(sdb, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
 
         // verify that the listing call contains our new SDB
         def sdbList = listSdbs(cerberusAuthToken, V1_SAFE_DEPOSIT_BOX_PATH)
@@ -110,7 +110,7 @@ class CerberusCompositeApiActions {
         JsonPath sdbUpdated = readSdb(cerberusAuthToken, sdbId, V1_SAFE_DEPOSIT_BOX_PATH)
 
         // verify that the sdbUpdated we created contains the data we expect
-        assertSafeDepositBoxHasFields(sdbUpdated, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
+        assertSafeDepositBoxV1HasFields(sdbUpdated, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
 
         // delete the SDB
         deleteSdb(cerberusAuthToken, sdbId, V1_SAFE_DEPOSIT_BOX_PATH)
@@ -155,7 +155,7 @@ class CerberusCompositeApiActions {
                 "role_id": roleMap.read
             ]
         ]
-        def iamRolePermissions = [
+        def iamPrincipalPermissions = [
             [
                 "iam_principal_arn": "arn:aws:iam::1111111111:role/fake_role",
                 "role_id": roleMap.write
@@ -163,13 +163,13 @@ class CerberusCompositeApiActions {
         ]
 
         // verify that the sdb we created contains the data we expect
-        def createdSdb = createSdbV2(cerberusAuthToken, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
-        assertSafeDepositBoxHasFields(createdSdb, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
+        def createdSdb = createSdbV2(cerberusAuthToken, name, description, categoryId, owner, userGroupPermissions, iamPrincipalPermissions)
+        assertSafeDepositBoxV2HasFields(createdSdb, name, description, categoryId, owner, userGroupPermissions, iamPrincipalPermissions)
 
         // test read sdb returns returns expected data
         def sdbId = createdSdb.getString("id")
         JsonPath sdb = readSdb(cerberusAuthToken, sdbId, V2_SAFE_DEPOSIT_BOX_PATH)
-        assertSafeDepositBoxHasFields(sdb, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
+        assertSafeDepositBoxV2HasFields(sdb, name, description, categoryId, owner, userGroupPermissions, iamPrincipalPermissions)
 
         // verify that the listing call contains our new SDB
         def sdbList = listSdbs(cerberusAuthToken, V2_SAFE_DEPOSIT_BOX_PATH)
@@ -194,17 +194,17 @@ class CerberusCompositeApiActions {
             "name": 'bar',
             "role_id": roleMap.write
         ])
-        iamRolePermissions.add([
+        iamPrincipalPermissions.add([
             "iam_principal_arn": "arn:aws:iam::1111111111:role/fake_role2",
             "role_id": roleMap.read
         ])
-        JsonPath sdbUpdatedUpdate = updateSdbV2(cerberusAuthToken, sdbId, description, owner, userGroupPermissions, iamRolePermissions)
+        JsonPath sdbUpdatedUpdate = updateSdbV2(cerberusAuthToken, sdbId, description, owner, userGroupPermissions, iamPrincipalPermissions)
 
         // verify that the sdbUpdated we created contains the data we expect
-        assertSafeDepositBoxHasFields(sdbUpdatedUpdate, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
+        assertSafeDepositBoxV2HasFields(sdbUpdatedUpdate, name, description, categoryId, owner, userGroupPermissions, iamPrincipalPermissions)
 
         JsonPath sdbUpdatedRead = readSdb(cerberusAuthToken, sdbId, V2_SAFE_DEPOSIT_BOX_PATH)
-        assertSafeDepositBoxHasFields(sdbUpdatedRead, name, description, categoryId, owner, userGroupPermissions, iamRolePermissions)
+        assertSafeDepositBoxV2HasFields(sdbUpdatedRead, name, description, categoryId, owner, userGroupPermissions, iamPrincipalPermissions)
 
         // delete the SDB
         deleteSdb(cerberusAuthToken, sdbId, V2_SAFE_DEPOSIT_BOX_PATH)
@@ -238,26 +238,20 @@ class CerberusCompositeApiActions {
         }
     }
 
-    private static boolean iamRolePermissionEquals(def iamRolePermission1, def iamRolePermission2) {
-        if (iamRolePermission1.'account_id' == iamRolePermission2.'account_id' &&
-                iamRolePermission1.'iam_role_name' == iamRolePermission2.'iam_role_name' &&
-                iamRolePermission1.'iam_principal_arn' == iamRolePermission2.'iam_principal_arn') {
-
-            return true
-        }
-
-        return false
-    }
-
-    private static void assertIamRolePermissionsEquals(def expectedIamRolePermissions, def actualIamRolePermissions) {
-        assertEquals(expectedIamRolePermissions.size(), actualIamRolePermissions.size())
-        for (def expectedPerm : expectedIamRolePermissions) {
+    private static void assertIamPermissionsEquals(boolean isV1, def expectedIamPermissions, def actualIamPermissions) {
+        assertEquals(expectedIamPermissions.size(), actualIamPermissions.size())
+        for (def expectedPerm : expectedIamPermissions) {
             def found = false
-            for (def actualPerm : actualIamRolePermissions) {
-                if (expectedPerm.'iam_role_name' == actualPerm.'iam_role_name' &&
-                        expectedPerm.'iam_principal_arn' == actualPerm.'iam_principal_arn') {
-                    found = true
-                    assertTrue(iamRolePermissionEquals(expectedPerm, actualPerm))
+            for (def actualPerm : actualIamPermissions) {
+                if (isV1) {
+                    if (expectedPerm.'iam_role_name' == actualPerm.'iam_role_name') {
+                        found = true
+                        assertEquals(expectedPerm.'account_id', actualPerm.'account_id')
+                    }
+                } else {
+                    if (expectedPerm.'iam_principal_arn' == actualPerm.'iam_principal_arn') {
+                        found = true
+                    }
                 }
             }
             assertTrue("The expected user permission was not found in the actual results", found)
@@ -280,14 +274,25 @@ class CerberusCompositeApiActions {
         }
     }
 
-    private static void assertSafeDepositBoxHasFields(def safeDepositBox, def name, def description, def categoryId,
-                                                      def owner, def userGroupPermissions, def iamRolePermissions) {
+    private static void assertSafeDepositBoxV1HasFields(def safeDepositBox, def name, def description, def categoryId,
+                                                             def owner, def userGroupPermissions, def iamRolePermissions) {
 
         assertEquals(name, safeDepositBox.get('name'))
         assertEquals(description, safeDepositBox.get('description'))
         assertEquals(categoryId, safeDepositBox.get('category_id'))
         assertEquals(owner, safeDepositBox.get('owner'))
-        assertIamRolePermissionsEquals(iamRolePermissions, safeDepositBox.getList('iam_role_permissions'))
+        assertIamPermissionsEquals(true, iamRolePermissions, safeDepositBox.getList('iam_role_permissions'))
+        assertUserGroupPermissionsEquals(userGroupPermissions, safeDepositBox.getList('user_group_permissions'))
+    }
+
+    private static void assertSafeDepositBoxV2HasFields(def safeDepositBox, def name, def description, def categoryId,
+                                                        def owner, def userGroupPermissions, def iamPrincipalPermissions) {
+
+        assertEquals(name, safeDepositBox.get('name'))
+        assertEquals(description, safeDepositBox.get('description'))
+        assertEquals(categoryId, safeDepositBox.get('category_id'))
+        assertEquals(owner, safeDepositBox.get('owner'))
+        assertIamPermissionsEquals(false, iamPrincipalPermissions, safeDepositBox.getList('iam_principal_permissions'))
         assertUserGroupPermissionsEquals(userGroupPermissions, safeDepositBox.getList('user_group_permissions'))
     }
 }
