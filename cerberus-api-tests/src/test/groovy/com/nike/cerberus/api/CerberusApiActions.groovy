@@ -92,7 +92,7 @@ class CerberusApiActions {
                         'region': region
                 ])
                         .when()
-                        .post("/v2/auth/iam-role")
+                        .post("/v2/auth/iam-principal")
                         .then()
                         .statusCode(200)
                         .contentType("application/json")
