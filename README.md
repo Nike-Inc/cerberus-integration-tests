@@ -54,7 +54,7 @@ You can run this only these tests with the following command
     TEST_ACCOUNT_ID=11111111 \
     TEST_ROLE_NAME=cerberus-api-tester \
     TEST_REGION=us-west-2 \
-    gradlew clean -Dcerberus-api-tests:test.single=CerberusIamApiTests cerberus-api-tests:test
+    gradlew clean -Dtest.single=CerberusIamApiTests cerberus-api-tests:test
     
 ### User Principal API Tests
 
@@ -77,4 +77,4 @@ You can run this only these tests with the following command
     TEST_USER_PASSWORD=${PASSWORD} \
     TEST_USER_OTP_SECRET=${OTP_SECRET} \
     TEST_USER_OTP_DEVICE_ID=111111 \
-    gradlew clean -Dcerberus-api-tests:test.single=CerberusIamApiTests cerberus-api-tests:test    
+    gradlew clean -Dtest.single=CerberusIamApiTests cerberus-api-tests:test    
