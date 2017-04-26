@@ -26,10 +26,7 @@
         "groups": {
           "type": "string"
         },
-        "aws_account_id": {
-          "type": "string"
-        },
-        "aws_iam_role_name": {
+        "aws_iam_principal_arn": {
           "type": "string"
         }
       },
@@ -38,8 +35,7 @@
         "username",
         "is_admin",
         "groups",
-        "aws_account_id",
-        "aws_iam_role_name"
+        "aws_iam_principal_arn"
       ]
     },
     "lease_duration": {

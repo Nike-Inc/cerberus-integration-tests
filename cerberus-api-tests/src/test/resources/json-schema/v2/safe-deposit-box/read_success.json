@@ -19,17 +19,13 @@
       "id": "/properties/description",
       "type": "string"
     },
-    "iam_role_permissions": {
+    "iam_principal_permissions": {
       "id": "/properties/iam_role_permissions",
       "items": {
         "id": "/properties/iam_role_permissions/items",
         "properties": {
-          "account_id": {
-            "id": "/properties/iam_role_permissions/items/properties/account_id",
-            "type": "string"
-          },
-          "iam_role_name": {
-            "id": "/properties/iam_role_permissions/items/properties/iam_role_name",
+          "iam_principal_arn": {
+            "id": "/properties/iam_role_permissions/items/properties/iam_principal_arn",
             "type": "string"
           },
           "role_id": {
@@ -39,8 +35,7 @@
         },
         "required": [
           "role_id",
-          "account_id",
-          "iam_role_name"
+          "iam_principal_arn"
         ],
         "type": "object"
       },
@@ -82,7 +77,7 @@
     "last_updated_ts",
     "user_group_permissions",
     "created_by",
-    "iam_role_permissions",
+    "iam_principal_permissions",
     "last_updated_by",
     "owner",
     "path",

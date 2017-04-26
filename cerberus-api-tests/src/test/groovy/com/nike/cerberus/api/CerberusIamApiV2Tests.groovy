@@ -11,7 +11,7 @@ import java.security.NoSuchAlgorithmException
 import static com.nike.cerberus.api.CerberusCompositeApiActions.*
 import static com.nike.cerberus.api.CerberusApiActions.*
 
-class CerberusIamApiTests {
+class CerberusIamApiV2Tests {
 
     private String accountId
     private String roleName
@@ -26,7 +26,7 @@ class CerberusIamApiTests {
         mapper = new ObjectMapper()
         TestUtils.configureRestAssured()
         loadRequiredEnvVars()
-        cerberusAuthData = retrieveIamAuthToken(accountId, roleName, region)
+        cerberusAuthData = retrieveIamAuthToken("arn:aws:iam::$accountId:role/$roleName", region)
         cerberusAuthToken = cerberusAuthData."client_token"
     }
 
@@ -48,7 +48,7 @@ class CerberusIamApiTests {
 
     @Test
     void "test that an authenticated IAM role can create, read, update then delete a secret node"() {
-        'create, read, update then delete a secret node'(cerberusAuthToken)
+        "create, read, update then delete a secret node"(cerberusAuthToken)
     }
 
     @Test

@@ -43,12 +43,13 @@ class CerberusUserApiTests {
 
     @Test
     void "test that an authenticated user can create, read, update then delete a safe deposit box"() {
-        "create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
+        "v1 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
+        "v2 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }
 
     @Test
     void "test that an authenticated user can create, update then delete a secret node in a safe deposit box"() {
-        'create, read, update then delete a secret node'(cerberusAuthToken)
+        "create, read, update then delete a secret node"(cerberusAuthToken)
     }
 
     private void loadRequiredEnvVars() {
@@ -58,7 +59,7 @@ class CerberusUserApiTests {
         password = TestUtils.getRequiredEnvVar("TEST_USER_PASSWORD",
                 "The password for a test user for testing user based endpoints")
 
-        // todo this make this optional
+        // todo: make this optional
         otpSecret = TestUtils.getRequiredEnvVar("TEST_USER_OTP_SECRET",
                 "The secret for the test users OTP MFA (OTP == Google auth)")
 
