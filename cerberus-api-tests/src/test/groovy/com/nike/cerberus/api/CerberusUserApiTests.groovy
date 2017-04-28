@@ -27,8 +27,9 @@ class CerberusUserApiTests {
 
     def auth(retryCount = 0) {
         try {
-            "login user with multi factor authentication (or skip mfa if not required) and return auth data"(username, password, otpSecret, otpDeviceId)
+            Map authResult = "login user with multi factor authentication (or skip mfa if not required) and return auth data"(username, password, otpSecret, otpDeviceId)
             System.out.println("login for " + username + " successful on try " + retryCount)
+            authResult
         } catch (Throwable t) {
             System.err.println("login for " + username + " failed on try " + retryCount)
             if (retryCount < 3) {
