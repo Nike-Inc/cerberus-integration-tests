@@ -227,7 +227,7 @@ class CerberusCompositeApiActions {
         JsonPath loginResp = loginUser(username, password)
         String status = loginResp.getString("status")
         if (status == "success") {
-            return loginResp.getString("data.client_token")
+            return loginResp.get("data.client_token")
         } else {
             def mfaResp = finishMfaUserAuth(
                     loginResp.getString("data.state_token"),
