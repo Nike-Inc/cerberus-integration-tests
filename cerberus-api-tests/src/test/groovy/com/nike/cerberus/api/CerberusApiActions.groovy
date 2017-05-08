@@ -15,9 +15,13 @@ import java.nio.ByteBuffer
 
 import static io.restassured.RestAssured.*
 import static io.restassured.module.jsv.JsonSchemaValidator.*
-import static org.junit.Assert.assertThat
+import static org.hamcrest.Matchers.*
+import static org.junit.Assert.*
 
 class CerberusApiActions {
+
+    public static String V1_SAFE_DEPOSIT_BOX_PATH = "/v1/safe-deposit-box"
+    public static String V2_SAFE_DEPOSIT_BOX_PATH = "/v2/safe-deposit-box"
 
     /**
      * Executes a delete on the v1 auth endpoint to trigger a logout / destroy token action
@@ -41,24 +45,24 @@ class CerberusApiActions {
      * @param region The region to do iam auth with
      * @return The authentication token
      */
-    static String retrieveIamAuthToken(String accountId, String roleName, String region) {
+    static def retrieveIamAuthToken(String accountId, String roleName, String region) {
         // get the encrypted payload and validate response
         Response response =
-        given()
-                .contentType("application/json")
-                .body([
-                    'account_id': accountId,
-                    'role_name': roleName,
-                    'region': region
+                given()
+                        .contentType("application/json")
+                        .body([
+                        'account_id': accountId,
+                        'role_name': roleName,
+                        'region': region
                 ])
-        .when()
-                .post("/v1/auth/iam-role")
-        .then()
-                .statusCode(200)
-                .contentType("application/json")
-                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/auth/iam-role-encrypted.json"))
-        .extract().
-                response()
+                        .when()
+                        .post("/v1/auth/iam-role")
+                        .then()
+                        .statusCode(200)
+                        .contentType("application/json")
+                        .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/auth/iam-role-encrypted.json"))
+                        .extract().
+                        response()
 
         // decrypt the payload
         String base64EncodedKmsEncryptedAuthPayload = response.body().jsonPath().getString("auth_data")
@@ -75,7 +79,45 @@ class CerberusApiActions {
         // validate decrypted schema and return auth token
         String jsonString = new String(result.getPlaintext().array())
         assertThat(jsonString, matchesJsonSchemaInClasspath("json-schema/v1/auth/iam-role-decrypted.json"))
-        return new JsonSlurper().parseText(jsonString)."client_token"
+        return new JsonSlurper().parseText(jsonString)
+    }
+
+    static def retrieveIamAuthToken(String roleArn, String region) {
+        // get the encrypted payload and validate response
+        Response response =
+                given()
+                        .contentType("application/json")
+                        .body([
+                        'iam_principal_arn': roleArn,
+                        'region': region
+                ])
+                        .when()
+                        .post("/v2/auth/iam-principal")
+                        .then()
+                        .statusCode(200)
+                        .contentType("application/json")
+                        .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v2/auth/iam-role-encrypted.json"))
+                        .extract().
+                        response()
+
+        // decrypt the payload
+        String base64EncodedKmsEncryptedAuthPayload = response.body().jsonPath().getString("auth_data")
+        AWSKMSClient kmsClient = new AWSKMSClient(new STSProfileCredentialsServiceProvider(
+                new RoleInfo().withRoleArn(roleArn)
+                        .withRoleSessionName(UUID.randomUUID().toString()))).withRegion(Regions.fromName(region))
+
+        DecryptResult result = kmsClient.decrypt(
+                new DecryptRequest()
+                        .withCiphertextBlob(
+                        ByteBuffer.wrap(Base64.getDecoder().decode(base64EncodedKmsEncryptedAuthPayload)))
+        )
+
+        // validate decrypted schema and return auth token
+        String jsonString = new String(result.getPlaintext().array())
+        assertThat(jsonString, matchesJsonSchemaInClasspath("json-schema/v2/auth/iam-role-decrypted.json"))
+//        return new JsonSlurper().parseText(jsonString)."client_token"
+        return new JsonSlurper().parseText(jsonString)
+
     }
 
     static void createOrUpdateSecretNode(Map data, String path, String cerberusAuthToken) {
@@ -119,7 +161,7 @@ class CerberusApiActions {
                 .statusCode(404)
     }
 
-    static ResponseBody loginUser(String username, String password) {
+    static JsonPath loginUser(String username, String password) {
         def body =
         given()
                 .header("Authorization", "Basic ${"$username:$password".bytes.encodeBase64()}")
@@ -139,14 +181,14 @@ class CerberusApiActions {
         } else {
             throw new IllegalStateException("unreconized status from login user: ${status}")
         }
-        return body
+        return body.jsonPath()
     }
 
     static void logoutUser(String cerberusAuthToken) {
         deleteAuthToken(cerberusAuthToken)
     }
 
-    static String finishMfaUserAuth(String stateToken, String deviceId, String otpToken) {
+    static JsonPath finishMfaUserAuth(String stateToken, String deviceId, String otpToken) {
         given()
                 .contentType("application/json")
                 .body([
@@ -161,6 +203,174 @@ class CerberusApiActions {
                 .contentType("application/json")
                 .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v2/auth/mfa_check.json"))
         .extract().
-                body().jsonPath().getString("data.client_token.client_token")
+                body().jsonPath()
+    }
+
+    static String createSdbV1(String cerberusAuthToken,
+                              String name,
+                              String description,
+                              String categoryId,
+                              String owner,
+                              List<Map<String, String>> userGroupPermissions,
+                              List<Map<String, String>> iamRolePermissions) {
+
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .contentType("application/json")
+                .body([
+                    name: name,
+                    description: description,
+                    'category_id': categoryId,
+                    owner: owner,
+                    'user_group_permissions': userGroupPermissions,
+                    'iam_role_permissions': iamRolePermissions
+                ])
+        .when()
+                .post(V1_SAFE_DEPOSIT_BOX_PATH)
+        .then()
+                .statusCode(201)
+                .header('X-Refresh-Token', 'true')
+                .header('Location', not(isEmptyOrNullString()))
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$V1_SAFE_DEPOSIT_BOX_PATH/create_success.json"))
+        .extract().
+                body().jsonPath().getString("id")
+    }
+
+    static JsonPath createSdbV2(String cerberusAuthToken,
+                              String name,
+                              String description,
+                              String categoryId,
+                              String owner,
+                              List<Map<String, String>> userGroupPermissions,
+                              List<Map<String, String>> iamPrincipalPermissions) {
+
+        given()
+            .header("X-Vault-Token", cerberusAuthToken)
+            .contentType("application/json")
+            .body([
+                name: name,
+                description: description,
+                'category_id': categoryId,
+                owner: owner,
+                'user_group_permissions': userGroupPermissions,
+                'iam_principal_permissions': iamPrincipalPermissions
+            ])
+            .when()
+                .post(V2_SAFE_DEPOSIT_BOX_PATH)
+            .then()
+                .statusCode(201)
+                .header('X-Refresh-Token', 'true')
+                .header('Location', not(isEmptyOrNullString()))
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$V2_SAFE_DEPOSIT_BOX_PATH/create_success.json"))
+            .extract().
+                body().jsonPath()
+    }
+
+    static JsonPath readSdb(String cerberusAuthToken, String sdbId, String baseSdbApiPath = V1_SAFE_DEPOSIT_BOX_PATH) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("${baseSdbApiPath}/${sdbId}")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$baseSdbApiPath/read_success.json"))
+        .extract().
+                body().jsonPath()
+    }
+
+    static void updateSdbV1(String cerberusAuthToken,
+                            String sdbId,
+                            String description,
+                            String owner,
+                            List<Map<String, String>> userGroupPermissions,
+                            List<Map<String, String>> iamRolePermissions) {
+
+        given()
+            .header("X-Vault-Token", cerberusAuthToken)
+            .contentType("application/json")
+            .body([
+                description: description,
+                owner: owner,
+                'user_group_permissions': userGroupPermissions,
+                'iam_role_permissions': iamRolePermissions
+            ])
+        .when()
+            .put("$V1_SAFE_DEPOSIT_BOX_PATH/${sdbId}")
+        .then()
+            .statusCode(204)
+            .header('X-Refresh-Token', 'true')
+
+    }
+
+    static JsonPath updateSdbV2(String cerberusAuthToken,
+                            String sdbId,
+                            String description,
+                            String owner,
+                            List<Map<String, String>> userGroupPermissions,
+                            List<Map<String, String>> iamPrincipalPermissions) {
+
+        given()
+            .header("X-Vault-Token", cerberusAuthToken)
+            .contentType("application/json")
+            .body([
+                description: description,
+                owner: owner,
+                'user_group_permissions': userGroupPermissions,
+                'iam_principal_permissions': iamPrincipalPermissions
+            ])
+        .when()
+            .put("$V2_SAFE_DEPOSIT_BOX_PATH/${sdbId}")
+        .then()
+            .statusCode(200)
+            .header('X-Refresh-Token', 'true')
+            .assertThat().body(matchesJsonSchemaInClasspath("json-schema/$V2_SAFE_DEPOSIT_BOX_PATH/read_success.json"))
+        .extract().
+            body().jsonPath()
+    }
+
+    static void deleteSdb(String cerberusAuthToken, String sdbId, String baseSdbApiPath = V1_SAFE_DEPOSIT_BOX_PATH) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+            .when()
+                .delete("${baseSdbApiPath}/${sdbId}")
+            .then()
+                .statusCode(200)
+                .header('X-Refresh-Token', 'true')
+    }
+
+    static JsonPath getRoles(String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/role")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/role/get_roles_success.json"))
+        .extract().
+                body().jsonPath()
+    }
+
+    static JsonPath getCategories(String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/category")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/category/get_categories_success.json"))
+        .extract().
+                body().jsonPath()
+    }
+
+    static JsonPath listSdbs(String cerberusAuthToken, String baseSdbApiPath = V1_SAFE_DEPOSIT_BOX_PATH) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get(baseSdbApiPath)
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/list_success.json"))
+        .extract().
+                body().jsonPath()
     }
 }

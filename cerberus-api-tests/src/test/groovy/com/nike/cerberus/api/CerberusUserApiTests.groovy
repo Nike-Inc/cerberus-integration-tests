@@ -15,12 +15,28 @@ class CerberusUserApiTests {
     private String otpDeviceId
     private String otpSecret
     private String cerberusAuthToken
+    private Map cerberusAuthData
 
     @BeforeTest
     void beforeTest() {
         TestUtils.configureRestAssured()
         loadRequiredEnvVars()
-        cerberusAuthToken = "login user with multi factor authentication (or skip mfa if not required) and return auth token"(username, password, otpSecret, otpDeviceId)
+        cerberusAuthData = auth()
+        cerberusAuthToken = cerberusAuthData.'client_token'
+    }
+
+    def auth(retryCount = 0) {
+        try {
+            Map authResult = "login user with multi factor authentication (or skip mfa if not required) and return auth data"(username, password, otpSecret, otpDeviceId)
+            System.out.println("user login successful on try " + retryCount)
+            authResult
+        } catch (Throwable t) {
+            System.err.println("user login failed on try " + retryCount)
+            if (retryCount < 3) {
+                sleep(10000)
+                return auth(retryCount + 1)
+            } else {throw t}
+        }
     }
 
     @AfterTest
@@ -29,13 +45,14 @@ class CerberusUserApiTests {
     }
 
     @Test
-    void "test that an authenticated user can create, read, update then delete  a safe deposit box"() {
-        "create, read, update then delete a safe deposit box"(cerberusAuthToken)
+    void "test that an authenticated user can create, read, update then delete a safe deposit box"() {
+        "v1 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
+        "v2 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }
 
     @Test
-    void "test that an authenticated user can create, create, update then delete a secret node in a safe deposit box"() {
-        'create, read, update then delete a secret node'(cerberusAuthToken)
+    void "test that an authenticated user can create, update then delete a secret node in a safe deposit box"() {
+        "create, read, update then delete a secret node"(cerberusAuthToken)
     }
 
     private void loadRequiredEnvVars() {
@@ -45,7 +62,7 @@ class CerberusUserApiTests {
         password = TestUtils.getRequiredEnvVar("TEST_USER_PASSWORD",
                 "The password for a test user for testing user based endpoints")
 
-        // todo this make this optional
+        // todo: make this optional
         otpSecret = TestUtils.getRequiredEnvVar("TEST_USER_OTP_SECRET",
                 "The secret for the test users OTP MFA (OTP == Google auth)")
 
