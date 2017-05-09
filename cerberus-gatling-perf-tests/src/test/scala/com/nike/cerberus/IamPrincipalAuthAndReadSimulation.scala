@@ -1,7 +1,5 @@
 package com.nike.cerberus
 
-import java.util
-
 import com.amazonaws.AmazonClientException
 import com.amazonaws.auth.policy.Statement.Effect
 import com.amazonaws.auth.policy.actions.{KMSActions, SecurityTokenServiceActions}
@@ -115,14 +113,30 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   }
 
   def writeRandomData(token: String, path: String) {
-    val numberOfNodesToCreate = scala.util.Random.nextInt(10)
+    // controls the number of nodes (paths in the storage structure that point to maps of data) to create for a given simulated services SDB
+    val minNodesToCreate = Integer.valueOf(PropUtils.getPropWithDefaultValue("minNodesToCreate", "5"))
+    val maxNodesToCreate = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxNodesToCreate", "10"))
+    // controls the path suffix
+    val minPathSuffixLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("minPathSuffixLength", "5"))
+    val maxPathSuffixLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxPathSuffixLength", "15"))
+    // how many k,v pairs at each node
+    val minKeyValuePairsPerNode = Integer.valueOf(PropUtils.getPropWithDefaultValue("minKeyValuePairsPerNode", "5"))
+    val maxKeyValuePairsPerNode = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxKeyValuePairsPerNode", "25"))
+    // key length
+    val minKeyLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("minKeyLength", "5"))
+    val maxKeyLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxKeyLength", "10"))
+    // value length
+    val minValueLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("minValueLength", "5"))
+    val maxValueLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxValueLength", "100"))
+
+    val numberOfNodesToCreate = scala.util.Random.nextInt(maxNodesToCreate - minNodesToCreate) + minNodesToCreate
     for (_ <- 0 to numberOfNodesToCreate) {
-      val pathSuffix = Random.alphanumeric.take(scala.util.Random.nextInt(10) + 5).mkString
-      val numberOfKeyValuePairsToCreate = scala.util.Random.nextInt(25)
+      val pathSuffix = Random.alphanumeric.take(scala.util.Random.nextInt(maxPathSuffixLength - minPathSuffixLength) + minPathSuffixLength).mkString
+      val numberOfKeyValuePairsToCreate = scala.util.Random.nextInt(maxKeyValuePairsPerNode - minKeyValuePairsPerNode) + minKeyValuePairsPerNode
       var data = mutable.HashMap[String, String]()
       for (_ <- 0 to numberOfKeyValuePairsToCreate) {
-        val key: String = Random.alphanumeric.take(scala.util.Random.nextInt(5) + 5).mkString
-        val value: String = Random.alphanumeric.take(scala.util.Random.nextInt(100) + 5).mkString
+        val key: String = Random.alphanumeric.take(scala.util.Random.nextInt(maxKeyLength - minKeyLength) + minKeyLength).mkString
+        val value: String = Random.alphanumeric.take(scala.util.Random.nextInt(maxValueLength - minValueLength) + minValueLength).mkString
         data += (key -> value)
       }
       CerberusApiActions.writeSecretData(data.asJava, s"$path$pathSuffix", token)
@@ -245,7 +259,14 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
     * After the simulation is run, delete the randomly created data.
     */
   after {
-    println("\n\n\n\n\nDeleting created performance iam roles and SDBs\n\n\n\n\n\n")
+    println(
+      """
+        |################################################################################
+        |#                                                                              #
+        |#            Deleting created performance iam roles and SDBs                   #
+        |#                                                                              #
+        |################################################################################
+      """.stripMargin)
 
     var authToken: String = ""
     try {
