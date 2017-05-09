@@ -266,8 +266,8 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       nothingFor(30 seconds), // let the created IAM roles be eventually consistent
       constantUsersPerSec(getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt) during(1 minutes)
     ).throttle(
-      reachRps(getPropWithDefaultValue("PEAK_RPS", "1000").toInt) in (getPropWithDefaultValue("PEAK_RAMP_TIME_IN_MINUTES", "5").toInt minutes),
-      holdFor(getPropWithDefaultValue("PEAK_RPS_HOLD_TIME_IN_MINUTES", "120").toInt minutes)
+      reachRps(25) in (5 minutes),
+      holdFor(20 minutes)
     )
   ).protocols(httpConf)
 
