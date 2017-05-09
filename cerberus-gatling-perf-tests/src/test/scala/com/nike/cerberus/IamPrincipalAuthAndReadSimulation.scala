@@ -9,7 +9,8 @@ import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient
 import com.amazonaws.services.identitymanagement.model._
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest
-import com.fieldju.commons.{PropUtils, StringUtils}
+import com.fieldju.commons.PropUtils._
+import com.fieldju.commons.StringUtils
 import io.gatling.core.Predef._
 import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
@@ -18,11 +19,12 @@ import com.nike.cerberus.api.CerberusApiActions
 import com.nike.cerberus.api.util.TestUtils
 import groovy.json.internal.LazyMap
 import io.restassured.path.json.JsonPath
+import com.nike.cerberus.CerberusGatlingApiActions._
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -31,24 +33,26 @@ import scala.util.Random
   */
 class IamPrincipalAuthAndReadSimulation extends Simulation {
 
-  private val ROLE_NAME = "role-name"
-  private val ROLE_ARN = "role-arn"
-  private val SDB_ID = "sdb-id"
-  private val SDB_DATA_PATH = "sdb-path"
+  // Sessions keys
+  private val ROLE_NAME = "role_name"
+  private val ROLE_ARN = "role_arn"
+  private val SDB_ID = "sdb_id"
+  private val SDB_DATA_PATH = "sdb_root_path"
+  private val REGION = "region"
 
-  private val cerberusBaseUrl: String = PropUtils.getRequiredProperty("CERBERUS_API_URL", "The base Cerberus API URL")
-  private val generatedData = ListBuffer[Map[String, String]]()
+  private val cerberusBaseUrl: String = getRequiredProperty("CERBERUS_API_URL", "The base Cerberus API URL")
+  private val generatedData = ArrayBuffer[Map[String, String]]()
   private var iam: AmazonIdentityManagementClient = _
   private var currentIamPrincipalArn: String = _
-  private val region = PropUtils.getPropWithDefaultValue("REGION", "us-west-2")
+  private val region = getPropWithDefaultValue("REGION", "us-west-2")
 
   before {
     ///////////////////////////////////////////////////////////////////////////////
     //  LOAD REQUIRED PROPS, These can be set via ENV vars or System properties  //
     ///////////////////////////////////////////////////////////////////////////////
-    val cerberusAccountId = PropUtils.getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
+    val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
     // This simulation creates and IAM role and SDB with data for each simulated service
-    val numberOfServicesToUseForSimulation = Integer.valueOf(PropUtils.getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1"))
+    val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
 
     println(
       s"""
@@ -107,27 +111,28 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         ROLE_ARN -> createdRoleArn,
         ROLE_NAME -> role.getRoleName,
         SDB_ID -> id,
-        SDB_DATA_PATH -> path
+        SDB_DATA_PATH -> path,
+        REGION -> region
       )
     }
   }
 
   def writeRandomData(token: String, path: String) {
     // controls the number of nodes (paths in the storage structure that point to maps of data) to create for a given simulated services SDB
-    val minNodesToCreate = Integer.valueOf(PropUtils.getPropWithDefaultValue("minNodesToCreate", "5"))
-    val maxNodesToCreate = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxNodesToCreate", "10"))
+    val minNodesToCreate: Int  = getPropWithDefaultValue("minNodesToCreate", "5").toInt
+    val maxNodesToCreate: Int  = getPropWithDefaultValue("maxNodesToCreate", "10").toInt
     // controls the path suffix
-    val minPathSuffixLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("minPathSuffixLength", "5"))
-    val maxPathSuffixLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxPathSuffixLength", "15"))
+    val minPathSuffixLength: Int  = getPropWithDefaultValue("minPathSuffixLength", "5").toInt
+    val maxPathSuffixLength: Int  = getPropWithDefaultValue("maxPathSuffixLength", "15").toInt
     // how many k,v pairs at each node
-    val minKeyValuePairsPerNode = Integer.valueOf(PropUtils.getPropWithDefaultValue("minKeyValuePairsPerNode", "5"))
-    val maxKeyValuePairsPerNode = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxKeyValuePairsPerNode", "25"))
+    val minKeyValuePairsPerNode: Int  = getPropWithDefaultValue("minKeyValuePairsPerNode", "5").toInt
+    val maxKeyValuePairsPerNode: Int  = getPropWithDefaultValue("maxKeyValuePairsPerNode", "25").toInt
     // key length
-    val minKeyLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("minKeyLength", "5"))
-    val maxKeyLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxKeyLength", "10"))
+    val minKeyLength: Int  = getPropWithDefaultValue("minKeyLength", "5").toInt
+    val maxKeyLength: Int  = getPropWithDefaultValue("maxKeyLength", "10").toInt
     // value length
-    val minValueLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("minValueLength", "5"))
-    val maxValueLength = Integer.valueOf(PropUtils.getPropWithDefaultValue("maxValueLength", "100"))
+    val minValueLength: Int  = getPropWithDefaultValue("minValueLength", "5").toInt
+    val maxValueLength: Int = getPropWithDefaultValue("maxValueLength", "100").toInt
 
     val numberOfNodesToCreate = scala.util.Random.nextInt(maxNodesToCreate - minNodesToCreate) + minNodesToCreate
     for (_ <- 0 to numberOfNodesToCreate) {
@@ -243,17 +248,28 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
 
   val httpConf: HttpProtocolBuilder = http.baseURL(cerberusBaseUrl)
 
-  val scn: ScenarioBuilder = scenario("Iam principal authenticates and then reads secrets").exec(
-      http("load_dashboard")
-      .get("/dashboard/")
-  )
+  val scn: ScenarioBuilder =
+    scenario("Iam principal authenticates and then reads secrets")
+    .feed(generatedData.random)
+    .exec(
+      authenticate_and_fetch_encrypted_iam_auth_payload_and_store_in_session,
+      decrypt_auth_payload_with_kms_and_store_auth_token_in_session,
+      list_all_the_node_keys_for_the_root_sdb_path_and_store_keys_in_session,
+      read_data_from_each_node
+    )
 
   /**
     * Set up the scenario
     */
   setUp(
-    scn.inject(atOnceUsers(1))
-  ).protocols(httpConf).maxDuration(10 seconds)
+    scn.inject(
+      nothingFor(30 seconds), // let the created IAM roles be eventually consistent
+      constantUsersPerSec(getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt) during(1 minutes)
+    ).throttle(
+      reachRps(getPropWithDefaultValue("PEAK_RPS", "1000").toInt) in (getPropWithDefaultValue("PEAK_RAMP_TIME_IN_MINUTES", "5").toInt minutes),
+      holdFor(getPropWithDefaultValue("PEAK_RPS_HOLD_TIME_IN_MINUTES", "120").toInt minutes)
+    )
+  ).protocols(httpConf)
 
   /**
     * After the simulation is run, delete the randomly created data.
@@ -263,7 +279,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       """
         |################################################################################
         |#                                                                              #
-        |#            Deleting created performance iam roles and SDBs                   #
+        |#             Deleting generated performance iam roles and SDBs                #
         |#                                                                              #
         |################################################################################
       """.stripMargin)

@@ -37,7 +37,7 @@ task runSimulation() {
         Map<String, String> options = [:]
 
         // debugging options
-        boolean enableDebug = true
+        boolean enableDebug = false
         int debugPort=5006
         boolean suspend=true
 

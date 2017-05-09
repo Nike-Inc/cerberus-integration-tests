@@ -81,13 +81,13 @@ class CerberusApiActions {
         return new JsonSlurper().parseText(jsonString)
     }
 
-    static def retrieveIamAuthToken(String roleArn, String region, boolean assumeRole = true) {
+    static def retrieveIamAuthToken(String iamPrincipalArn, String region, boolean assumeRole = true) {
         // get the encrypted payload and validate response
         Response response =
                 given()
                         .contentType("application/json")
                         .body([
-                        'iam_principal_arn': roleArn,
+                        'iam_principal_arn': iamPrincipalArn,
                         'region': region
                 ])
                 .when()
@@ -101,10 +101,14 @@ class CerberusApiActions {
 
         // decrypt the payload
         String base64EncodedKmsEncryptedAuthPayload = response.body().jsonPath().getString("auth_data")
+        return getDecryptedPayload(iamPrincipalArn, region, base64EncodedKmsEncryptedAuthPayload, assumeRole)
+    }
+
+    static def getDecryptedPayload(String iamPrincipalArn, String region, String base64EncodedKmsEncryptedAuthPayload, boolean assumeRole = true) {
         AWSKMSClient kmsClient
         if (assumeRole) {
             kmsClient = new AWSKMSClient(new STSProfileCredentialsServiceProvider(
-                    new RoleInfo().withRoleArn(roleArn)
+                    new RoleInfo().withRoleArn(iamPrincipalArn)
                             .withRoleSessionName(UUID.randomUUID().toString()))).withRegion(Regions.fromName(region))
         } else {
             kmsClient = new AWSKMSClient().withRegion(Regions.fromName(region))
@@ -119,9 +123,11 @@ class CerberusApiActions {
         // validate decrypted schema and return auth token
         String jsonString = new String(result.getPlaintext().array())
         assertThat(jsonString, matchesJsonSchemaInClasspath("json-schema/v2/auth/iam-role-decrypted.json"))
-//        return new JsonSlurper().parseText(jsonString)."client_token"
         return new JsonSlurper().parseText(jsonString)
+    }
 
+    static String decryptAuthTokenAsRoleAndRetrieveToken(String iamPrincipalArn, String region, String base64EncodedKmsEncryptedAuthPayload) {
+        return getDecryptedPayload(iamPrincipalArn, region, base64EncodedKmsEncryptedAuthPayload, true)."client_token"
     }
 
     static void createOrUpdateSecretNode(Map data, String path, String cerberusAuthToken) {
