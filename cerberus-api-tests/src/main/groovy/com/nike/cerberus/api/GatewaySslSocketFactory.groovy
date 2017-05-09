@@ -16,14 +16,14 @@
 
 package com.nike.cerberus.api
 
-import com.nike.cerberus.api.util.TestUtils;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
-import org.apache.http.params.HttpParams;
+import com.fieldju.commons.PropUtils
+import org.apache.http.conn.ssl.SSLSocketFactory
+import org.apache.http.conn.ssl.X509HostnameVerifier
+import org.apache.http.params.HttpParams
 
-import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SNIHostName
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLParameters
 import javax.net.ssl.SSLSocket
 
 /**
@@ -44,7 +44,7 @@ class GatewaySslSocketFactory extends SSLSocketFactory {
         sslSocket.setEnabledProtocols(protocols)
 
         // Configure SNI
-        URL url = new URL(TestUtils.getRequiredEnvVar("CERBERUS_API_URL", "The Cerberus API URL to Test"))
+        URL url = new URL(PropUtils.getRequiredProperty("CERBERUS_API_URL", "The Cerberus API URL to Test"))
         SNIHostName serverName = new SNIHostName(url.getHost())
         SSLParameters sslParams = sslSocket.getSSLParameters()
         sslParams.setServerNames(Collections.singletonList(serverName))
