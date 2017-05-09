@@ -1,12 +1,14 @@
 package com.nike.cerberus
 
+import java.util
+
 import com.amazonaws.AmazonClientException
 import com.amazonaws.auth.policy.Statement.Effect
 import com.amazonaws.auth.policy.actions.{KMSActions, SecurityTokenServiceActions}
 import com.amazonaws.auth.policy.{Policy, Principal, Resource, Statement}
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClient
-import com.amazonaws.services.identitymanagement.model.{CreateRoleRequest, DeleteRoleRequest, PutRolePolicyRequest, Role}
+import com.amazonaws.services.identitymanagement.model._
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest
 import com.fieldju.commons.{PropUtils, StringUtils}
@@ -22,6 +24,7 @@ import io.restassured.path.json.JsonPath
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -36,7 +39,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   private val SDB_DATA_PATH = "sdb-path"
 
   private val cerberusBaseUrl: String = PropUtils.getRequiredProperty("CERBERUS_API_URL", "The base Cerberus API URL")
-  private val generatedData: List[Map[String, String]] = List()
+  private val generatedData = ListBuffer[Map[String, String]]()
   private var iam: AmazonIdentityManagementClient = _
   private var currentIamPrincipalArn: String = _
   private val region = PropUtils.getPropWithDefaultValue("REGION", "us-west-2")
@@ -48,7 +51,6 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
     val cerberusAccountId = PropUtils.getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
     // This simulation creates and IAM role and SDB with data for each simulated service
     val numberOfServicesToUseForSimulation = Integer.valueOf(PropUtils.getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1"))
-    val ownerGroup = PropUtils.getRequiredProperty("SDB_OWNER_GROUP", "The owner group for the SDBs created by this simulation")
 
     println(
       s"""
@@ -59,7 +61,6 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         |
         |   CERBERUS_API_URL: $cerberusBaseUrl
         |   CERBERUS_ACCOUNT_ID: $cerberusAccountId
-        |   SDB_OWNER_GROUP: $ownerGroup
         |   NUMBER_OF_SERVICES_FOR_SIMULATION: $numberOfServicesToUseForSimulation
         |
         |######################################################################
@@ -93,7 +94,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         authToken,
         currentIamPrincipalArn,
         createdRoleArn,
-        ownerGroup,
+        "registered-iam-principals",
         roleMap("read"),
         roleMap("write"),
         catMap("Applications")
@@ -102,10 +103,9 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       val id = idAndPath._1
       val path = idAndPath._2
 
-      // TODO write random data
-      writeRandomData(authToken, path)
+      writeRandomData(authenticate(currentIamPrincipalArn), path)
 
-      generatedData :+ Map(
+      generatedData += Map(
         ROLE_ARN -> createdRoleArn,
         ROLE_NAME -> role.getRoleName,
         SDB_ID -> id,
@@ -117,15 +117,15 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   def writeRandomData(token: String, path: String) {
     val numberOfNodesToCreate = scala.util.Random.nextInt(10)
     for (_ <- 0 to numberOfNodesToCreate) {
-      val pathSuffix = Random.alphanumeric.take(scala.util.Random.nextInt(15)).mkString
-      val numberOfKeyValuePairsToCreate = scala.util.Random.nextInt(100)
+      val pathSuffix = Random.alphanumeric.take(scala.util.Random.nextInt(10) + 5).mkString
+      val numberOfKeyValuePairsToCreate = scala.util.Random.nextInt(25)
       var data = mutable.HashMap[String, String]()
       for (_ <- 0 to numberOfKeyValuePairsToCreate) {
-        val key: String = Random.alphanumeric.take(scala.util.Random.nextInt(100)).mkString
-        val value: String = Random.alphanumeric.take(scala.util.Random.nextInt(1000)).mkString
+        val key: String = Random.alphanumeric.take(scala.util.Random.nextInt(5) + 5).mkString
+        val value: String = Random.alphanumeric.take(scala.util.Random.nextInt(100) + 5).mkString
         data += (key -> value)
       }
-      CerberusApiActions.writeSecretData(data.asJava, s"$path/$pathSuffix", token)
+      CerberusApiActions.writeSecretData(data.asJava, s"$path$pathSuffix", token)
     }
   }
 
@@ -169,9 +169,10 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
                 writeRoleId: String,
                 categoryId: String): (String, String) = {
 
-    val iamPermissions: java.util.List[java.util.Map[String, String]] = List()
-    iamPermissions :+ Map("iam_principal_arn" -> iamPrincipalArnRunningSimulation, "role_id" -> writeRoleId)
-    iamPermissions :+ Map("iam_principal_arn" -> simulatedIamPrincipalArn, "role_id" -> readRoleId)
+    val iamPermissions = List(
+      Map("iam_principal_arn" -> iamPrincipalArnRunningSimulation, "role_id" -> writeRoleId).asJava,
+      Map("iam_principal_arn" -> simulatedIamPrincipalArn, "role_id" -> readRoleId).asJava
+    ).asJava
 
     val jsonPath: JsonPath = CerberusApiActions.createSdbV2(
       authToken,
@@ -244,7 +245,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
     * After the simulation is run, delete the randomly created data.
     */
   after {
-    println("Deleting created performance iam roles and sdbs")
+    println("\n\n\n\n\nDeleting created performance iam roles and SDBs\n\n\n\n\n\n")
 
     var authToken: String = ""
     try {
@@ -259,6 +260,10 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       try {
         val roleName = data(ROLE_NAME)
         println(s"Deleting role: $roleName")
+        val policies = iam.listRolePolicies(new ListRolePoliciesRequest().withRoleName(roleName))
+        for (policyName <- policies.getPolicyNames) {
+          iam.deleteRolePolicy(new DeleteRolePolicyRequest().withPolicyName(policyName).withRoleName(roleName))
+        }
         iam.deleteRole(new DeleteRoleRequest().withRoleName(roleName))
       } catch {
         case t: Throwable =>
@@ -268,6 +273,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
 
       val sdbId = data(SDB_ID)
       try {
+        println(s"Deleting sdb: $sdbId")
         CerberusApiActions.deleteSdb(authToken, sdbId)
       } catch {
         case t: Throwable =>
