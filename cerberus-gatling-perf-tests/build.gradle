@@ -1,17 +1,22 @@
 import org.apache.commons.io.FileUtils
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 buildscript {
     repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
         jcenter()
     }
     dependencies {
         classpath group: 'commons-io', name: 'commons-io', version: '2.5'
-
+        classpath "com.github.jengelman.gradle.plugins:shadow:2.0.0"
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'scala'
+apply plugin: "com.github.johnrengelman.shadow"
 
 dependencies {
     compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.0'
@@ -72,44 +77,8 @@ task runSimulation() {
     }
 }
 
-// can this just be the shadow jar plugin #TODO
-task gatlingCompileSimulationFatJar() {
-    def testClasses = project.tasks.findByName('testClasses')
-    if (testClasses != null) {
-        dependsOn testClasses
-    }
-
-    doLast {
-        File buildDir = new File("${project.rootDir}/build/libs")
-        buildDir.mkdirs()
-
-        List deps = []
-        deps.addAll(project.configurations.compile.files.collect())
-        deps.addAll(project.configurations.testCompile.files.collect())
-
-        manifest {
-            attributes 'Implementation-Title': project.getName() + '-gatling',
-                    'Implementation-Version': project.getVersion(),
-                    'Class-Path': deps.each { File file -> file.getName() }.join(' ')
-        }
-        baseName = project.getName() + "-gatling-all"
-
-        // Grab the dependencies
-        from(deps.each { File file ->
-            file.isDirectory() ? file : project.zipTree(file)
-        }) {
-            exclude "META-INF/*.SF"
-            exclude "META-INF/*.DSA"
-            exclude "META-INF/*.RSA"
-        }
-
-        from(project.sourceSets.test.scala.getSrcDirs().each { File file ->
-            file.isDirectory() ? file : project.zipTree(file)
-        })
-
-        from "${project.rootDir}/src/test/resources"
-
-        with project.tasks.findByName('jar')
-        copy()
-    }
+task gatlingCompileSimulationFatJar(type: ShadowJar) {
+    classifier = 'gatling-all'
+    from sourceSets.test.output
+    configurations = [project.configurations.testRuntime]
 }

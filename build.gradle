@@ -9,3 +9,7 @@ subprojects { subproject ->
         compile 'com.fieldju:commons:1.2.0'
     }
 }
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.5'
+}
