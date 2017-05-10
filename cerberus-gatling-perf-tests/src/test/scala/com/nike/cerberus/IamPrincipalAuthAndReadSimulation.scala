@@ -1,5 +1,7 @@
 package com.nike.cerberus
 
+import java.util.regex.{Matcher, Pattern}
+
 import com.amazonaws.AmazonClientException
 import com.amazonaws.auth.policy.Statement.Effect
 import com.amazonaws.auth.policy.actions.{KMSActions, SecurityTokenServiceActions}
@@ -158,6 +160,13 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       case e: AmazonClientException =>
         println("\nThis simulation requires that AWS Credentials are set, see http://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html and the ability to call get-caller-identity from the STS api\n")
         throw new IllegalStateException("Failed to determine the ARN for the principal running the simulation", e)
+    }
+
+    // convert arn to role format rather than assumed role format
+    val iamRoleArnParserPattern = Pattern.compile("arn:aws:sts::(?<accountId>.*?):assumed-role/(?<roleName>.*?)/.*")
+    val iamRoleArnParserMatcher = iamRoleArnParserPattern.matcher(arn)
+    if (iamRoleArnParserMatcher.find()) {
+      arn = s"arn:aws:iam::${iamRoleArnParserMatcher.group("accountId")}:role/${iamRoleArnParserMatcher.group("roleName")}"
     }
     arn
   }
