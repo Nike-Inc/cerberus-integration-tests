@@ -81,4 +81,5 @@ task gatlingCompileSimulationFatJar(type: ShadowJar) {
     classifier = 'gatling-all'
     from sourceSets.test.output
     configurations = [project.configurations.testRuntime]
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
 }
