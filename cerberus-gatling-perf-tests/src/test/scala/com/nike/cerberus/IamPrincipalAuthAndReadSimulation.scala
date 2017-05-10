@@ -42,20 +42,41 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   private val SDB_DATA_PATH = "sdb_root_path"
   private val REGION = "region"
 
-  private val cerberusBaseUrl: String = getRequiredProperty("CERBERUS_API_URL", "The base Cerberus API URL")
   private val generatedData = ArrayBuffer[Map[String, String]]()
   private var iam: AmazonIdentityManagementClient = _
   private var currentIamPrincipalArn: String = _
+
+  ///////////////////////////////////////////////////////////////////////////////
+  //  LOAD REQUIRED PROPS, These can be set via ENV vars or System properties  //
+  ///////////////////////////////////////////////////////////////////////////////
+  private val cerberusBaseUrl: String = getRequiredProperty("CERBERUS_API_URL", "The base Cerberus API URL")
   private val region = getPropWithDefaultValue("REGION", "us-west-2")
+  private val peakUsers = getPropWithDefaultValue("PEAK_USERS", "20").toInt
+  private val holdTimeAfterPeakInMinutes = getPropWithDefaultValue("HOLD_TIME_AFTER_PEAK_IN_MINUTES", "60").toInt
+  private val rampUpTimeInMinutes = getPropWithDefaultValue("RAMP_UP_TIME_IN_MINUTES", "5").toInt
+  private val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
+  private val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
+
+  ////////////////////////////
+  // DATA GENERATION CONTROLS
+  ////////////////////////////
+  // controls the number of nodes (paths in the storage structure that point to maps of data) to create for a given simulated services SDB
+  private val minNodesToCreate: Int  = getPropWithDefaultValue("minNodesToCreate", "5").toInt
+  private val maxNodesToCreate: Int  = getPropWithDefaultValue("maxNodesToCreate", "10").toInt
+  // controls the path suffix
+  private val minPathSuffixLength: Int  = getPropWithDefaultValue("minPathSuffixLength", "5").toInt
+  private val maxPathSuffixLength: Int  = getPropWithDefaultValue("maxPathSuffixLength", "15").toInt
+  // how many k,v pairs at each node
+  private val minKeyValuePairsPerNode: Int  = getPropWithDefaultValue("minKeyValuePairsPerNode", "5").toInt
+  private val maxKeyValuePairsPerNode: Int  = getPropWithDefaultValue("maxKeyValuePairsPerNode", "25").toInt
+  // key length
+  private val minKeyLength: Int  = getPropWithDefaultValue("minKeyLength", "5").toInt
+  private val maxKeyLength: Int  = getPropWithDefaultValue("maxKeyLength", "10").toInt
+  // value length
+  private val minValueLength: Int  = getPropWithDefaultValue("minValueLength", "5").toInt
+  private val maxValueLength: Int = getPropWithDefaultValue("maxValueLength", "100").toInt
 
   before {
-    ///////////////////////////////////////////////////////////////////////////////
-    //  LOAD REQUIRED PROPS, These can be set via ENV vars or System properties  //
-    ///////////////////////////////////////////////////////////////////////////////
-    val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
-    // This simulation creates and IAM role and SDB with data for each simulated service
-    val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
-
     println(
       s"""
         |
@@ -64,8 +85,28 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         |######################################################################
         |
         |   CERBERUS_API_URL: $cerberusBaseUrl
+        |     This controls the api that will be perfromance tested
+        |
         |   CERBERUS_ACCOUNT_ID: $cerberusAccountId
+        |     The account id is needed when creating iam roles for the test
+        |     and granting kms decrypt for the cerberus account
+        |
+        |   REGION: $region
+        |     This will be the region that kms is used in
+        |
         |   NUMBER_OF_SERVICES_FOR_SIMULATION: $numberOfServicesToUseForSimulation
+        |     This is the number of IAM roles and SDBs with random data will be
+        |     created for the simulation.
+        |
+        |     Each simulated user will be feed one of these services randomly to be
+        |   PEAK_USERS: $peakUsers
+        |     The number of simulated concurrent users for the test
+        |
+        |   RAMP_Up_TIME_IN_MINUTES:  $rampUpTimeInMinutes
+        |     The amount of time to ramp down from peak users to 0 users.
+        |
+        |   HOLD_TIME_AFTER_PEAK_IN_MINUTES: $holdTimeAfterPeakInMinutes
+        |     The amount of minutes to hold the peak users for
         |
         |######################################################################
         |
@@ -120,22 +161,6 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   }
 
   def writeRandomData(token: String, path: String) {
-    // controls the number of nodes (paths in the storage structure that point to maps of data) to create for a given simulated services SDB
-    val minNodesToCreate: Int  = getPropWithDefaultValue("minNodesToCreate", "5").toInt
-    val maxNodesToCreate: Int  = getPropWithDefaultValue("maxNodesToCreate", "10").toInt
-    // controls the path suffix
-    val minPathSuffixLength: Int  = getPropWithDefaultValue("minPathSuffixLength", "5").toInt
-    val maxPathSuffixLength: Int  = getPropWithDefaultValue("maxPathSuffixLength", "15").toInt
-    // how many k,v pairs at each node
-    val minKeyValuePairsPerNode: Int  = getPropWithDefaultValue("minKeyValuePairsPerNode", "5").toInt
-    val maxKeyValuePairsPerNode: Int  = getPropWithDefaultValue("maxKeyValuePairsPerNode", "25").toInt
-    // key length
-    val minKeyLength: Int  = getPropWithDefaultValue("minKeyLength", "5").toInt
-    val maxKeyLength: Int  = getPropWithDefaultValue("maxKeyLength", "10").toInt
-    // value length
-    val minValueLength: Int  = getPropWithDefaultValue("minValueLength", "5").toInt
-    val maxValueLength: Int = getPropWithDefaultValue("maxValueLength", "100").toInt
-
     val numberOfNodesToCreate = scala.util.Random.nextInt(maxNodesToCreate - minNodesToCreate) + minNodesToCreate
     for (_ <- 0 to numberOfNodesToCreate) {
       val pathSuffix = Random.alphanumeric.take(scala.util.Random.nextInt(maxPathSuffixLength - minPathSuffixLength) + minPathSuffixLength).mkString
@@ -273,10 +298,8 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   setUp(
     scn.inject(
       nothingFor(30 seconds), // let the created IAM roles be eventually consistent
-      constantUsersPerSec(getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt) during(1 minutes)
-    ).throttle(
-      reachRps(25) in (5 minutes),
-      holdFor(20 minutes)
+      rampUsers(peakUsers) over(rampUpTimeInMinutes minutes),
+      constantUsersPerSec(peakUsers) during(holdTimeAfterPeakInMinutes minutes)
     )
   ).protocols(httpConf)
 
