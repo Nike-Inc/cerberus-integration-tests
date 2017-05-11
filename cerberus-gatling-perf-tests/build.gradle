@@ -20,8 +20,8 @@ apply plugin: "com.github.johnrengelman.shadow"
 
 dependencies {
     compile group: 'org.scala-lang', name: 'scala-library', version: '2.11.0'
-    compile group: 'io.gatling', name: 'gatling-app', version: '2.2.5'
-    compile group: 'io.gatling.highcharts', name: 'gatling-charts-highcharts', version: '2.2.5'
+    compile group: 'io.gatling', name: 'gatling-app', version: '2.2.4'
+    compile group: 'io.gatling.highcharts', name: 'gatling-charts-highcharts', version: '2.2.4'
 
     compile group: 'com.amazonaws', name: 'aws-java-sdk-kms', version: '1.11.76'
     compile group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.11.76'
