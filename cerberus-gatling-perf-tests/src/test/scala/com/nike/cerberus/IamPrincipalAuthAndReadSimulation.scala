@@ -51,9 +51,9 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   ///////////////////////////////////////////////////////////////////////////////
   private val cerberusBaseUrl: String = getRequiredProperty("CERBERUS_API_URL", "The base Cerberus API URL")
   private val region = getPropWithDefaultValue("REGION", "us-west-2")
-  private val peakUsers = getPropWithDefaultValue("PEAK_USERS", "20").toInt
-  private val holdTimeAfterPeakInMinutes = getPropWithDefaultValue("HOLD_TIME_AFTER_PEAK_IN_MINUTES", "60").toInt
-  private val rampUpTimeInMinutes = getPropWithDefaultValue("RAMP_UP_TIME_IN_MINUTES", "5").toInt
+  private val peakUsers = getPropWithDefaultValue("PEAK_USERS", "1").toInt
+  private val holdTimeAfterPeakInMinutes = getPropWithDefaultValue("HOLD_TIME_AFTER_PEAK_IN_MINUTES", "1").toInt
+  private val rampUpTimeInMinutes = getPropWithDefaultValue("RAMP_UP_TIME_IN_MINUTES", "1").toInt
   private val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
   private val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
 
@@ -61,13 +61,13 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   // DATA GENERATION CONTROLS
   ////////////////////////////
   // controls the number of nodes (paths in the storage structure that point to maps of data) to create for a given simulated services SDB
-  private val minNodesToCreate: Int  = getPropWithDefaultValue("minNodesToCreate", "5").toInt
-  private val maxNodesToCreate: Int  = getPropWithDefaultValue("maxNodesToCreate", "10").toInt
+  private val minNodesToCreate: Int  = getPropWithDefaultValue("minNodesToCreate", "1").toInt
+  private val maxNodesToCreate: Int  = getPropWithDefaultValue("maxNodesToCreate", "3").toInt
   // controls the path suffix
   private val minPathSuffixLength: Int  = getPropWithDefaultValue("minPathSuffixLength", "5").toInt
   private val maxPathSuffixLength: Int  = getPropWithDefaultValue("maxPathSuffixLength", "15").toInt
   // how many k,v pairs at each node
-  private val minKeyValuePairsPerNode: Int  = getPropWithDefaultValue("minKeyValuePairsPerNode", "5").toInt
+  private val minKeyValuePairsPerNode: Int  = getPropWithDefaultValue("minKeyValuePairsPerNode", "1").toInt
   private val maxKeyValuePairsPerNode: Int  = getPropWithDefaultValue("maxKeyValuePairsPerNode", "25").toInt
   // key length
   private val minKeyLength: Int  = getPropWithDefaultValue("minKeyLength", "5").toInt
@@ -102,7 +102,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         |   PEAK_USERS: $peakUsers
         |     The number of simulated concurrent users for the test
         |
-        |   RAMP_Up_TIME_IN_MINUTES:  $rampUpTimeInMinutes
+        |   RAMP_UP_TIME_IN_MINUTES:  $rampUpTimeInMinutes
         |     The amount of time to ramp down from peak users to 0 users.
         |
         |   HOLD_TIME_AFTER_PEAK_IN_MINUTES: $holdTimeAfterPeakInMinutes
@@ -131,7 +131,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
 
     // Create iam roles and SDBs
     iam = new AmazonIdentityManagementClient().withRegion(Regions.fromName(region))
-    for (_ <- 1 to numberOfServicesToUseForSimulation) {
+    for (i <- 1 to numberOfServicesToUseForSimulation) {
       val role: Role = createRole(cerberusAccountId, currentIamPrincipalArn, iam)
 
       val createdRoleArn = role.getArn
@@ -150,13 +150,32 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
 
       writeRandomData(authenticate(currentIamPrincipalArn), path)
 
-      generatedData += Map(
+      val data = Map(
         ROLE_ARN -> createdRoleArn,
         ROLE_NAME -> role.getRoleName,
         SDB_ID -> id,
         SDB_DATA_PATH -> path,
         REGION -> region
       )
+
+      println(
+        s"""
+          |
+          |######################################################################
+          |# Generated data for service $i of $numberOfServicesToUseForSimulation
+          |######################################################################
+          |
+          | ROLE_ARN: ${data(ROLE_ARN)}
+          | ROLE_NAME: ${data(ROLE_NAME)}
+          | SDB_ID: ${data(SDB_ID)}
+          | SDB_DATA_PATH: ${data(SDB_DATA_PATH)}
+          | REGION: ${data(REGION)}
+          |
+          |######################################################################
+          |
+        """.stripMargin)
+
+      generatedData += data
     }
   }
 
