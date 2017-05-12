@@ -32,9 +32,7 @@
                 "groups": {
                   "type": "string"
                 }
-              },
-              "required": [
-              ]
+              }
             },
             "lease_duration": {
               "type": "integer"

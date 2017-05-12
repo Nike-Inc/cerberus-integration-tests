@@ -29,9 +29,7 @@
         "aws_iam_principal_arn": {
           "type": "string"
         }
-      },
-      "required": [
-      ]
+      }
     },
     "lease_duration": {
       "type": "integer"

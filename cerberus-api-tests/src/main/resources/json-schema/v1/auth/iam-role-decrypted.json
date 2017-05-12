@@ -32,9 +32,7 @@
         "aws_iam_role_name": {
           "type": "string"
         }
-      },
-      "required": [
-      ]
+      }
     },
     "lease_duration": {
       "type": "integer"
