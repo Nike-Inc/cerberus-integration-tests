@@ -56,6 +56,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   private val rampUpTimeInMinutes = getPropWithDefaultValue("RAMP_UP_TIME_IN_MINUTES", "1").toInt
   private val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
   private val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
+  private val createIamRoles = getPropWithDefaultValue("CREATE_IAM_ROLES", "false").toBoolean
 
   ////////////////////////////
   // DATA GENERATION CONTROLS
@@ -95,10 +96,20 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         |     This will be the region that kms is used in
         |
         |   NUMBER_OF_SERVICES_FOR_SIMULATION: $numberOfServicesToUseForSimulation
-        |     This is the number of IAM roles and SDBs with random data will be
+        |     This is the number of SDBs with random data will be
         |     created for the simulation.
         |
-        |     Each simulated user will be feed one of these services randomly to be
+        |   Each simulated user will be feed one of these services randomly to be
+        |
+        |   CREATE_IAM_ROLES: $createIamRoles
+        |     Setting this to true creates a new iam role that will get deleted
+        |     at the end of the simulation for each NUMBER_OF_SERVICES_FOR_SIMULATION
+        |     WARNING: This creates a KMS key for each IAM role that does not get
+        |              cleaned up automatically
+        |
+        |     Setting this to false makes each simulated service use the role that
+        |     is runnign the tests
+        |
         |   PEAK_USERS: $peakUsers
         |     The number of simulated concurrent users for the test
         |
@@ -132,9 +143,18 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
     // Create iam roles and SDBs
     iam = new AmazonIdentityManagementClient().withRegion(Regions.fromName(region))
     for (i <- 1 to numberOfServicesToUseForSimulation) {
-      val role: Role = createRole(cerberusAccountId, currentIamPrincipalArn, iam)
 
-      val createdRoleArn = role.getArn
+      var createdRoleArn = ""
+      var createdRoleName = ""
+      if (createIamRoles) {
+        val role: Role = createRole(cerberusAccountId, currentIamPrincipalArn, iam)
+        createdRoleArn = role.getArn
+        createdRoleName = role.getRoleName
+      } else {
+        createdRoleArn = currentIamPrincipalArn
+        createdRoleName = currentIamPrincipalArn
+      }
+
       val idAndPath = createSDB(
         authToken,
         currentIamPrincipalArn,
@@ -152,7 +172,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
 
       val data = Map(
         ROLE_ARN -> createdRoleArn,
-        ROLE_NAME -> role.getRoleName,
+        ROLE_NAME -> createdRoleName,
         SDB_ID -> id,
         SDB_DATA_PATH -> path,
         REGION -> region
