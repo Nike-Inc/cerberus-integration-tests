@@ -31,11 +31,6 @@
         }
       },
       "required": [
-        "aws_region",
-        "username",
-        "is_admin",
-        "groups",
-        "aws_iam_principal_arn"
       ]
     },
     "lease_duration": {
