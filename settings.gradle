@@ -1,3 +1,4 @@
 rootProject.name = 'cerberus-integration-tests'
 
-include 'cerberus-api-tests'
+include 'cerberus-api-tests',
+        'cerberus-gatling-perf-tests'

@@ -9,7 +9,6 @@ import com.amazonaws.services.kms.model.DecryptResult
 import groovy.json.JsonSlurper
 import io.restassured.path.json.JsonPath
 import io.restassured.response.Response
-import io.restassured.response.ResponseBody
 
 import java.nio.ByteBuffer
 
@@ -20,8 +19,8 @@ import static org.junit.Assert.*
 
 class CerberusApiActions {
 
-    public static String V1_SAFE_DEPOSIT_BOX_PATH = "/v1/safe-deposit-box"
-    public static String V2_SAFE_DEPOSIT_BOX_PATH = "/v2/safe-deposit-box"
+    public static String V1_SAFE_DEPOSIT_BOX_PATH = "v1/safe-deposit-box"
+    public static String V2_SAFE_DEPOSIT_BOX_PATH = "v2/safe-deposit-box"
 
     /**
      * Executes a delete on the v1 auth endpoint to trigger a logout / destroy token action
@@ -45,7 +44,7 @@ class CerberusApiActions {
      * @param region The region to do iam auth with
      * @return The authentication token
      */
-    static def retrieveIamAuthToken(String accountId, String roleName, String region) {
+    static def retrieveIamAuthToken(String accountId, String roleName, String region, boolean assumeRole = true) {
         // get the encrypted payload and validate response
         Response response =
                 given()
@@ -55,56 +54,52 @@ class CerberusApiActions {
                         'role_name': roleName,
                         'region': region
                 ])
-                        .when()
+                .when()
                         .post("/v1/auth/iam-role")
-                        .then()
+                .then()
                         .statusCode(200)
                         .contentType("application/json")
                         .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/auth/iam-role-encrypted.json"))
-                        .extract().
+                .extract().
                         response()
 
         // decrypt the payload
         String base64EncodedKmsEncryptedAuthPayload = response.body().jsonPath().getString("auth_data")
-        AWSKMSClient kmsClient = new AWSKMSClient(new STSProfileCredentialsServiceProvider(
-                new RoleInfo().withRoleArn(String.format("arn:aws:iam::%s:role/%s", accountId, roleName))
-                        .withRoleSessionName(UUID.randomUUID().toString()))).withRegion(Regions.fromName(region))
-
-        DecryptResult result = kmsClient.decrypt(
-                new DecryptRequest()
-                        .withCiphertextBlob(
-                        ByteBuffer.wrap(Base64.getDecoder().decode(base64EncodedKmsEncryptedAuthPayload)))
-        )
-
-        // validate decrypted schema and return auth token
-        String jsonString = new String(result.getPlaintext().array())
-        assertThat(jsonString, matchesJsonSchemaInClasspath("json-schema/v1/auth/iam-role-decrypted.json"))
-        return new JsonSlurper().parseText(jsonString)
+        return getDecryptedPayload(String.format("arn:aws:iam::%s:role/%s", accountId, roleName), region, base64EncodedKmsEncryptedAuthPayload, assumeRole)
     }
 
-    static def retrieveIamAuthToken(String roleArn, String region) {
+    static def retrieveIamAuthToken(String iamPrincipalArn, String region, boolean assumeRole = true) {
         // get the encrypted payload and validate response
         Response response =
                 given()
                         .contentType("application/json")
                         .body([
-                        'iam_principal_arn': roleArn,
+                        'iam_principal_arn': iamPrincipalArn,
                         'region': region
                 ])
-                        .when()
+                .when()
                         .post("/v2/auth/iam-principal")
-                        .then()
+                .then()
                         .statusCode(200)
                         .contentType("application/json")
                         .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v2/auth/iam-role-encrypted.json"))
-                        .extract().
+                .extract().
                         response()
 
         // decrypt the payload
         String base64EncodedKmsEncryptedAuthPayload = response.body().jsonPath().getString("auth_data")
-        AWSKMSClient kmsClient = new AWSKMSClient(new STSProfileCredentialsServiceProvider(
-                new RoleInfo().withRoleArn(roleArn)
-                        .withRoleSessionName(UUID.randomUUID().toString()))).withRegion(Regions.fromName(region))
+        return getDecryptedPayload(iamPrincipalArn, region, base64EncodedKmsEncryptedAuthPayload, assumeRole)
+    }
+
+    static def getDecryptedPayload(String iamPrincipalArn, String region, String base64EncodedKmsEncryptedAuthPayload, boolean assumeRole = true) {
+        AWSKMSClient kmsClient
+        if (assumeRole) {
+            kmsClient = new AWSKMSClient(new STSProfileCredentialsServiceProvider(
+                    new RoleInfo().withRoleArn(iamPrincipalArn)
+                            .withRoleSessionName(UUID.randomUUID().toString()))).withRegion(Regions.fromName(region))
+        } else {
+            kmsClient = new AWSKMSClient().withRegion(Regions.fromName(region))
+        }
 
         DecryptResult result = kmsClient.decrypt(
                 new DecryptRequest()
@@ -115,9 +110,11 @@ class CerberusApiActions {
         // validate decrypted schema and return auth token
         String jsonString = new String(result.getPlaintext().array())
         assertThat(jsonString, matchesJsonSchemaInClasspath("json-schema/v2/auth/iam-role-decrypted.json"))
-//        return new JsonSlurper().parseText(jsonString)."client_token"
         return new JsonSlurper().parseText(jsonString)
+    }
 
+    static String decryptAuthTokenAsRoleAndRetrieveToken(String iamPrincipalArn, String region, String base64EncodedKmsEncryptedAuthPayload) {
+        return getDecryptedPayload(iamPrincipalArn, region, base64EncodedKmsEncryptedAuthPayload, true)."client_token"
     }
 
     static void createOrUpdateSecretNode(Map data, String path, String cerberusAuthToken) {
@@ -128,6 +125,10 @@ class CerberusApiActions {
                 .post("/v1/secret/${path}")
         .then()
                 .statusCode(204)
+    }
+
+    static void writeSecretData(Map data, String path, String cerberusAuthToken) {
+        createOrUpdateSecretNode(data, path, cerberusAuthToken)
     }
 
     static JsonPath readSecretNode(String path, String cerberusAuthToken) {

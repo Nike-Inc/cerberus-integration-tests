@@ -16,3 +16,4 @@ gradle-app.setting
 # gradle/wrapper/gradle-wrapper.properties
 
 .idea/
+/cerberus-gatling-perf-tests/target/

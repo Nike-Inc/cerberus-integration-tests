@@ -1,0 +1,7 @@
+{
+  "TestToRun": "IamPrincipalAuthAndReadSimulation",
+  "Package": "com.nike.cerberus",
+  "TestConfigs":  {
+    "IamPrincipalAuthAndReadSimulation":  {}
+  }
+}

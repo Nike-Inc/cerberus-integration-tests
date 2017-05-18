@@ -32,12 +32,7 @@
                 "groups": {
                   "type": "string"
                 }
-              },
-              "required": [
-                "username",
-                "is_admin",
-                "groups"
-              ]
+              }
             },
             "lease_duration": {
               "type": "integer"

@@ -1,5 +1,6 @@
 package com.nike.cerberus.api
 
+import com.fieldju.commons.PropUtils
 import com.nike.cerberus.api.util.TestUtils
 import org.testng.annotations.AfterTest
 import org.testng.annotations.BeforeTest
@@ -56,17 +57,17 @@ class CerberusUserApiTests {
     }
 
     private void loadRequiredEnvVars() {
-        username = TestUtils.getRequiredEnvVar("TEST_USER_EMAIL",
+        username = PropUtils.getRequiredProperty("TEST_USER_EMAIL",
                 "The email address for a test user for testing user based endpoints")
 
-        password = TestUtils.getRequiredEnvVar("TEST_USER_PASSWORD",
+        password = PropUtils.getRequiredProperty("TEST_USER_PASSWORD",
                 "The password for a test user for testing user based endpoints")
 
         // todo: make this optional
-        otpSecret = TestUtils.getRequiredEnvVar("TEST_USER_OTP_SECRET",
+        otpSecret = PropUtils.getRequiredProperty("TEST_USER_OTP_SECRET",
                 "The secret for the test users OTP MFA (OTP == Google auth)")
 
-        otpDeviceId = TestUtils.getRequiredEnvVar("TEST_USER_OTP_DEVICE_ID",
+        otpDeviceId = PropUtils.getRequiredProperty("TEST_USER_OTP_DEVICE_ID",
                 "The device id for the test users OTP MFA (OTP == Google auth)")
     }
 }

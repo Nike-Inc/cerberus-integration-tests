@@ -1,6 +1,7 @@
 package com.nike.cerberus.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fieldju.commons.PropUtils
 import com.nike.cerberus.api.util.TestUtils
 import org.testng.annotations.AfterTest
 import org.testng.annotations.BeforeTest
@@ -36,13 +37,13 @@ class CerberusIamApiV2Tests {
     }
 
     private void loadRequiredEnvVars() {
-        accountId = TestUtils.getRequiredEnvVar("TEST_ACCOUNT_ID",
+        accountId = PropUtils.getRequiredProperty("TEST_ACCOUNT_ID",
                 "The account id to use when authenticating with Cerberus using the IAM Auth endpoint")
 
-        roleName = TestUtils.getRequiredEnvVar("TEST_ROLE_NAME",
+        roleName = PropUtils.getRequiredProperty("TEST_ROLE_NAME",
                 "The role name to use when authenticating with Cerberus using the IAM Auth endpoint")
 
-        region = TestUtils.getRequiredEnvVar("TEST_REGION",
+        region = PropUtils.getRequiredProperty("TEST_REGION",
                 "The region to use when authenticating with Cerberus using the IAM Auth endpoint")
     }
 

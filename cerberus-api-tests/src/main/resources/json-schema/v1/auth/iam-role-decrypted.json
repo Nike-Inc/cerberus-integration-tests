@@ -26,17 +26,13 @@
         "groups": {
           "type": "string"
         },
-        "aws_iam_principal_arn": {
+        "aws_account_id": {
+          "type": "string"
+        },
+        "aws_iam_role_name": {
           "type": "string"
         }
-      },
-      "required": [
-        "aws_region",
-        "username",
-        "is_admin",
-        "groups",
-        "aws_iam_principal_arn"
-      ]
+      }
     },
     "lease_duration": {
       "type": "integer"
