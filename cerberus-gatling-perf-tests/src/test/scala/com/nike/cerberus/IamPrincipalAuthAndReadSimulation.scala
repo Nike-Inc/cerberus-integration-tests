@@ -339,9 +339,6 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       nothingFor(30 seconds), // let the created IAM roles be eventually consistent
       rampUsers(peakUsers) over(rampUpTimeInMinutes minutes),
       constantUsersPerSec(peakUsers) during(holdTimeAfterPeakInMinutes minutes)
-    ).throttle(
-      reachRps(peakUsers) in(rampUpTimeInMinutes minutes),
-      holdFor(holdTimeAfterPeakInMinutes minutes)
     )
   ).protocols(httpConf)
 
@@ -368,18 +365,20 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
     }
 
     for (data <- generatedData) {
-      try {
-        val roleName = data(ROLE_NAME)
-        println(s"Deleting role: $roleName")
-        val policies = iam.listRolePolicies(new ListRolePoliciesRequest().withRoleName(roleName))
-        for (policyName <- policies.getPolicyNames) {
-          iam.deleteRolePolicy(new DeleteRolePolicyRequest().withPolicyName(policyName).withRoleName(roleName))
+      if (createIamRoles) {
+        try {
+          val roleName = data(ROLE_NAME)
+          println(s"Deleting role: $roleName")
+          val policies = iam.listRolePolicies(new ListRolePoliciesRequest().withRoleName(roleName))
+          for (policyName <- policies.getPolicyNames) {
+            iam.deleteRolePolicy(new DeleteRolePolicyRequest().withPolicyName(policyName).withRoleName(roleName))
+          }
+          iam.deleteRole(new DeleteRoleRequest().withRoleName(roleName))
+        } catch {
+          case t: Throwable =>
+            println(s"failed to delete generated iam role ${data.getOrElse(ROLE_NAME, "unknown")}")
+            t.printStackTrace()
         }
-        iam.deleteRole(new DeleteRoleRequest().withRoleName(roleName))
-      } catch {
-        case t: Throwable =>
-          println(s"failed to delete generated iam role ${data.getOrElse(ROLE_NAME, "unknown")}")
-          t.printStackTrace()
       }
 
       val sdbId = data(SDB_ID)
