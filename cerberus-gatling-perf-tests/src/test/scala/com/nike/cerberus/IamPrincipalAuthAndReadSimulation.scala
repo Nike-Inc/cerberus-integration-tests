@@ -86,38 +86,13 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         |######################################################################
         |
         |   CERBERUS_API_URL: $cerberusBaseUrl
-        |     This controls the api that will be perfromance tested
-        |
         |   CERBERUS_ACCOUNT_ID: $cerberusAccountId
-        |     The account id is needed when creating iam roles for the test
-        |     and granting kms decrypt for the cerberus account
-        |
         |   REGION: $region
-        |     This will be the region that kms is used in
-        |
         |   NUMBER_OF_SERVICES_FOR_SIMULATION: $numberOfServicesToUseForSimulation
-        |     This is the number of SDBs with random data will be
-        |     created for the simulation.
-        |
-        |   Each simulated user will be feed one of these services randomly to be
-        |
         |   CREATE_IAM_ROLES: $createIamRoles
-        |     Setting this to true creates a new iam role that will get deleted
-        |     at the end of the simulation for each NUMBER_OF_SERVICES_FOR_SIMULATION
-        |     WARNING: This creates a KMS key for each IAM role that does not get
-        |              cleaned up automatically
-        |
-        |     Setting this to false makes each simulated service use the role that
-        |     is runnign the tests
-        |
         |   PEAK_USERS: $peakUsers
-        |     The number of simulated concurrent users for the test
-        |
         |   RAMP_UP_TIME_IN_MINUTES:  $rampUpTimeInMinutes
-        |     The amount of time to ramp down from peak users to 0 users.
-        |
         |   HOLD_TIME_AFTER_PEAK_IN_MINUTES: $holdTimeAfterPeakInMinutes
-        |     The amount of minutes to hold the peak users for
         |
         |######################################################################
         |
