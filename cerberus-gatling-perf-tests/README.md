@@ -23,7 +23,7 @@ HOLD_TIME_AFTER_PEAK_IN_MINUTES | The amount of minutes to hold the peak users f
 
 You can use the following gradlew task
 
-    ./gradlew clean runSimulation
+    ./gradlew clean cerberus-gatling-perf-tests:runSimulation
     
 ### Somewhere else
 
