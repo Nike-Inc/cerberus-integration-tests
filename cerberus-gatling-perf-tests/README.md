@@ -29,7 +29,7 @@ You can use the following gradlew task
 
 The following gradle task can create a fat jar containing the tests
 
-    ./gradlew clean gatlingCompileSimulationFatJar
+    ./gradlew clean cerberus-gatling-perf-tests:gatlingCompileSimulationFatJar
     
 You can trigger the tests via 
 
