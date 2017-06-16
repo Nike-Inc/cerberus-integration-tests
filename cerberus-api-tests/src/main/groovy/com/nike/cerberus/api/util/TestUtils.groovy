@@ -24,7 +24,7 @@ class TestUtils {
         SSLSocketFactory customSslFactory = new GatewaySslSocketFactory(
                 SSLContext.getDefault(), SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
         config = config().sslConfig(
-                SSLConfig.sslConfig().sslSocketFactory(customSslFactory))
+                SSLConfig.sslConfig().allowAllHostnames().sslSocketFactory(customSslFactory))
         config.getHttpClientConfig().reuseHttpClientInstance()
     }
 }
