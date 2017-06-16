@@ -1,5 +1,22 @@
+import com.amazonaws.auth.profile.internal.securitytoken.RoleInfo
+import com.amazonaws.auth.profile.internal.securitytoken.STSProfileCredentialsServiceProvider
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.kms.AWSKMSClient
+import com.amazonaws.services.kms.model.DecryptRequest
+import com.fieldju.commons.PropUtils
 import org.apache.commons.io.FileUtils
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import okhttp3.MediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.Response
+import org.apache.http.conn.ssl.NoopHostnameVerifier
+
+import java.nio.ByteBuffer
+import java.util.concurrent.TimeUnit
 
 buildscript {
     repositories {
@@ -11,6 +28,13 @@ buildscript {
     dependencies {
         classpath group: 'commons-io', name: 'commons-io', version: '2.5'
         classpath "com.github.jengelman.gradle.plugins:shadow:2.0.0"
+        classpath 'com.nike:cerberus-client:2.3.0'
+        classpath group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.11.76'
+        classpath group: 'com.amazonaws', name: 'aws-java-sdk-kms', version: '1.11.76'
+        classpath 'com.fieldju:commons:1.2.0'
+        classpath 'com.squareup.okhttp3:okhttp:3.6.0'
+        classpath group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.7'
+
     }
 }
 
@@ -32,25 +56,27 @@ dependencies {
 }
 
 task runSimulation() {
-    group = 'gatling'
+    group = 'performance-testing'
     description = 'Runs gatling simulation'
     dependsOn project.tasks.findByName('testClasses')
 
     doLast {
-        String simulation = 'com.nike.cerberus.IamPrincipalAuthAndReadSimulation'
+        def simulationClassName = project.hasProperty('simulation') ? project.'simulation' : IamPrincipalAuthAndReadSimulation
+
+        String simulation = "com.nike.cerberus.$simulationClassName"
         String reportPath = "${project.getBuildDir().absolutePath}${File.separator}reports${File.separator}gatling"
         Map<String, String> options = [:]
 
         // debugging options
-        boolean enableDebug = false
-        int debugPort=5006
+        boolean enableDebug = project.hasProperty('enableGatingDebug')
+        int debugPort = project.hasProperty('debugPort') ? project.'debugPort' : 5006
         boolean suspend=true
 
         logger.lifecycle "Gatling: Creating generated folders"
 
         File target = new File("${project.projectDir.getAbsolutePath()}/target/test-classes")
         target.mkdirs()
-        File testClass = new File("${project.buildDir}/classes/test/")
+
 
         logger.lifecycle "----- Start Processing ${simulation}. -----"
 
@@ -82,4 +108,106 @@ task gatlingCompileSimulationFatJar(type: ShadowJar) {
     from sourceSets.test.output
     configurations = [project.configurations.testRuntime]
     exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+}
+
+task deletePerformanceTestSDBs() {
+    group = 'performance-testing'
+    description = 'Deletes generated data, this will be needed if you tip the system to a point where you ' +
+            'can\'t use the API at the end of a perf test'
+
+    doLast {
+        /********************
+         * Authenticate as the IAM Principal
+         ********************/
+        String region = project.hasProperty('REGION') ? project.'REGION' : PropUtils.getPropWithDefaultValue('REGION', 'us-west-2')
+        String url = project.hasProperty('CERBERUS_API_URL') ? project.'CERBERUS_API_URL' : PropUtils.getRequiredProperty('CERBERUS_API_URL', 'The base Cerberus API Url to delete test data in')
+        String arn = project.hasProperty('TEST_RUNNER_ARN') ? project.'TEST_RUNNER_ARN' : PropUtils.getRequiredProperty('TEST_RUNNER_ARN', 'The IAM Principal ARN that the tests ran as')
+
+        int DEFAULT_TIMEOUT = 120
+        TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS
+
+        OkHttpClient client = new OkHttpClient.Builder()
+                .hostnameVerifier(new NoopHostnameVerifier()) // talking straight to the ELB, skip hostname ver
+                .connectTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
+                .writeTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
+                .readTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
+                .build()
+
+
+        MediaType JSON = MediaType.parse("application/json; charset=utf-8")
+
+        RequestBody body = RequestBody.create(JSON,
+                new JsonBuilder([
+                        region: region,
+                        iam_principal_arn: arn
+                ]).toString())
+
+        Request request = new Request.Builder()
+                .url("$url/v2/auth/iam-principal")
+                .post(body)
+                .build()
+        Response response = client.newCall(request).execute()
+
+        if (response.code() != 200) {
+            throw new RuntimeException("Failed to authenticate with Cerberus. Code: ${response.code()}, Msg: ${response.body().string()}")
+        }
+
+        def authPayload = new JsonSlurper().parseText(response.body().string())
+
+        String encryptedAuthData = authPayload.auth_data
+
+        def credentialsProvider = new STSProfileCredentialsServiceProvider(
+                new RoleInfo().withRoleArn(arn)
+                        .withRoleSessionName(UUID.randomUUID().toString()))
+        AWSKMSClient kmsClient = new AWSKMSClient(credentialsProvider).withRegion(Regions.fromName(region))
+
+        def authResp = kmsClient.decrypt(new DecryptRequest()
+                .withCiphertextBlob(ByteBuffer.wrap(encryptedAuthData.decodeBase64())))
+        def respString = new String(authResp.getPlaintext().array())
+        def authData = new JsonSlurper().parseText(respString)
+
+        def token = authData.client_token
+
+        logger.lifecycle("Token: $token")
+
+        /********************
+         * List the SDBs
+         ********************/
+        Request listSDBs = new Request.Builder()
+                .url("$url/v2/safe-deposit-box")
+                .addHeader('X-Vault-Token', token)
+                .get()
+                .build()
+        Response listSDBsResponse = client.newCall(listSDBs).execute()
+        if (listSDBsResponse.code() != 200) {
+            throw new RuntimeException("Failed to list SDBs. Code: ${listSDBsResponse.code()}, Msg: ${listSDBsResponse.body().string()}")
+        }
+        List sdbs = new JsonSlurper().parseText(listSDBsResponse.body().string())
+
+        logger.lifecycle("Found ${sdbs.size()} sdbs")
+        // filter out SDBs that where not created for the perf tests
+        def sdbsToDelete = []
+        sdbs.each { sdb ->
+            if ((sdb.name as String).startsWith('perf test ')) {
+                sdbsToDelete.add sdb.id
+            }
+        }
+
+        /********************
+         * Delete the SDBs
+         ********************/
+        logger.lifecycle("Perparing to delete the following SDBs: $sdbsToDelete")
+        sdbsToDelete.each { sdb ->
+            logger.lifecycle("Deleting the following SDB: $sdb")
+            Request deleteSDB = new Request.Builder()
+                    .url("$url/v2/safe-deposit-box/$sdb")
+                    .addHeader('X-Vault-Token', token)
+                    .delete()
+                    .build()
+            Response deleteResponse = client.newCall(deleteSDB).execute()
+            if (deleteResponse.code() != 200) {
+                throw new RuntimeException("Failed to delete SDB. Code: ${deleteResponse.code()}, Msg: ${deleteResponse.body().string()}")
+            }
+        }
+    }
 }

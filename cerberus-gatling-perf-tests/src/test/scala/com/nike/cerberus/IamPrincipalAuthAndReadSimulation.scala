@@ -58,25 +58,6 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   private val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
   private val createIamRoles = getPropWithDefaultValue("CREATE_IAM_ROLES", "false").toBoolean
 
-  ////////////////////////////
-  // DATA GENERATION CONTROLS
-  ////////////////////////////
-  // controls the number of nodes (paths in the storage structure that point to maps of data) to create for a given simulated services SDB
-  private val minNodesToCreate: Int  = getPropWithDefaultValue("minNodesToCreate", "1").toInt
-  private val maxNodesToCreate: Int  = getPropWithDefaultValue("maxNodesToCreate", "3").toInt
-  // controls the path suffix
-  private val minPathSuffixLength: Int  = getPropWithDefaultValue("minPathSuffixLength", "5").toInt
-  private val maxPathSuffixLength: Int  = getPropWithDefaultValue("maxPathSuffixLength", "15").toInt
-  // how many k,v pairs at each node
-  private val minKeyValuePairsPerNode: Int  = getPropWithDefaultValue("minKeyValuePairsPerNode", "1").toInt
-  private val maxKeyValuePairsPerNode: Int  = getPropWithDefaultValue("maxKeyValuePairsPerNode", "25").toInt
-  // key length
-  private val minKeyLength: Int  = getPropWithDefaultValue("minKeyLength", "5").toInt
-  private val maxKeyLength: Int  = getPropWithDefaultValue("maxKeyLength", "10").toInt
-  // value length
-  private val minValueLength: Int  = getPropWithDefaultValue("minValueLength", "5").toInt
-  private val maxValueLength: Int = getPropWithDefaultValue("maxValueLength", "100").toInt
-
   before {
     println(
       s"""
@@ -143,7 +124,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       val id = idAndPath._1
       val path = idAndPath._2
 
-      writeRandomData(authenticate(currentIamPrincipalArn), path)
+      VaultDataHelper.writeRandomData(authenticate(currentIamPrincipalArn), path)
 
       val data = Map(
         ROLE_ARN -> createdRoleArn,
@@ -171,21 +152,6 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         """.stripMargin)
 
       generatedData += data
-    }
-  }
-
-  def writeRandomData(token: String, path: String) {
-    val numberOfNodesToCreate = scala.util.Random.nextInt(maxNodesToCreate - minNodesToCreate) + minNodesToCreate
-    for (_ <- 0 to numberOfNodesToCreate) {
-      val pathSuffix = Random.alphanumeric.take(scala.util.Random.nextInt(maxPathSuffixLength - minPathSuffixLength) + minPathSuffixLength).mkString
-      val numberOfKeyValuePairsToCreate = scala.util.Random.nextInt(maxKeyValuePairsPerNode - minKeyValuePairsPerNode) + minKeyValuePairsPerNode
-      var data = mutable.HashMap[String, String]()
-      for (_ <- 0 to numberOfKeyValuePairsToCreate) {
-        val key: String = Random.alphanumeric.take(scala.util.Random.nextInt(maxKeyLength - minKeyLength) + minKeyLength).mkString
-        val value: String = Random.alphanumeric.take(scala.util.Random.nextInt(maxValueLength - minValueLength) + minValueLength).mkString
-        data += (key -> value)
-      }
-      CerberusApiActions.writeSecretData(data.asJava, s"$path$pathSuffix", token)
     }
   }
 
