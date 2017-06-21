@@ -118,7 +118,7 @@ class CerberusApiActions {
     }
 
     static void createOrUpdateSecretNode(Map data, String path, String cerberusAuthToken) {
-        given().relaxedHTTPSValidation()
+        given()
                 .header("X-Vault-Token", cerberusAuthToken)
                 .body(data)
         .when()
@@ -145,7 +145,7 @@ class CerberusApiActions {
     }
 
     static void deleteSecretNode(String path, String cerberusAuthToken) {
-        given().relaxedHTTPSValidation()
+        given()
                 .header("X-Vault-Token", cerberusAuthToken)
         .when()
                 .delete("/v1/secret/${path}")
