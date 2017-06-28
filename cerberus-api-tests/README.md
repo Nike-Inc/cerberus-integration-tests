@@ -52,7 +52,27 @@ You can run this only these tests with the following command
     TEST_ROLE_NAME=cerberus-api-tester \
     TEST_REGION=us-west-2 \
     gradlew clean -Dtest.single=CerberusIamApiTests cerberus-api-tests:test
-    
+
+### IAM Principal API V2 Tests
+
+This is a series of tests that validate that IAM authenticated Cerberus principals can interact with the Cerberus API
+in the manner that is expected
+
+The following environment variables are required to run this test
+
+Environment Variable | Description
+TEST_ACCOUNT_ID      | The account id to use when authenticating with Cerberus using the IAM Auth endpoint
+TEST_ROLE_NAME       | The role name to use when authenticating with Cerberus using the IAM Auth endpoint
+TEST_REGION          | The region to use when authenticating with Cerberus using the IAM Auth endpoint
+
+You can run this only these tests with the following command
+
+    CERBERUS_API_URL=http://127.0.0.1:9000 \
+    TEST_ACCOUNT_ID=11111111 \
+    TEST_ROLE_NAME=cerberus-api-tester \
+    TEST_REGION=us-west-2 \
+    gradlew clean -Dtest.single=CerberusIamApiV2Tests cerberus-api-tests:test
+
 ### User Principal API Tests
 
 This is a series of tests that validate that user authenticated Cerberus principals can interact with the Cerberus API 
@@ -74,4 +94,23 @@ You can run this only these tests with the following command
     TEST_USER_PASSWORD=${PASSWORD} \
     TEST_USER_OTP_SECRET=${OTP_SECRET} \
     TEST_USER_OTP_DEVICE_ID=111111 \
-    gradlew clean -Dtest.single=CerberusUserApiTests cerberus-api-tests:test   
+    gradlew clean -Dtest.single=CerberusUserApiTests cerberus-api-tests:test
+
+### Clean Up API Tests
+
+This is a series of tests that validate that the cleanup API call completes successfully and returns the correct response code
+
+Warning: This test will clean up orphaned and inactive IAM and KMS records on the environments database
+
+The following environment variables are required to run this test
+
+Environment Variable     | Description
+TEST_IAM_PRINCIPAL_ARN   | An IAM principal ARN that has admin permissions in the Cerberus Management Service (via CMS property `cms.admin.roles`)
+TEST_REGION              | The region to use when authenticating with Cerberus using the IAM Auth endpoint
+
+You can run this only these tests with the following command
+
+    CERBERUS_API_URL=http://127.0.0.1:9000 \
+    TEST_IAM_PRINCIPAL_ARN=arn:aws:iam::000000000000:role/admin-role-name \
+    TEST_REGION=us-west-2 \
+    gradlew clean -Dtest.single=CerberusCleanUpApiTests cerberus-api-tests:test
