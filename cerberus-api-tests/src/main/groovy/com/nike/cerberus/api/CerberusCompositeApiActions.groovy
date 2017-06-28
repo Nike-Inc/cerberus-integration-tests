@@ -160,9 +160,11 @@ class CerberusCompositeApiActions {
                 "role_id": roleMap.read
             ]
         ]
+
+        String arn = "arn:aws:iam::${accountId}:role/${roleName}"
         def iamPrincipalPermissions = [
             [
-                "iam_principal_arn": "arn:aws:iam::$accountId:role/$roleName",
+                "iam_principal_arn": arn,
                 "role_id": roleMap.owner
             ]
         ]
