@@ -1,5 +1,6 @@
 package com.nike.cerberus.api
 
+import com.fieldju.commons.PropUtils
 import com.thedeanda.lorem.Lorem
 import io.restassured.path.json.JsonPath
 import org.apache.commons.lang3.RandomStringUtils
@@ -37,6 +38,8 @@ class CerberusCompositeApiActions {
     }
 
     static void "v1 create, read, list, update and then delete a safe deposit box"(Map cerberusAuthPayloadData) {
+        String accountId = PropUtils.getPropWithDefaultValue("TEST_ACCOUNT_ID", "1111111111")
+        String roleName = PropUtils.getPropWithDefaultValue("TEST_ROLE_NAME", "fake_role")
         String cerberusAuthToken = cerberusAuthPayloadData.'client_token'
         String groups = cerberusAuthPayloadData.metadata.groups
         def group = groups.split(/,/)[0]
@@ -66,9 +69,9 @@ class CerberusCompositeApiActions {
         ]
         def iamRolePermissions = [
             [
-                "account_id": "1111111111",
-                "iam_role_name": "fake_role",
-                "role_id": roleMap.write
+                "account_id": accountId,
+                "iam_role_name": roleName,
+                "role_id": roleMap.owner
             ]
         ]
 
@@ -128,6 +131,8 @@ class CerberusCompositeApiActions {
     }
 
     static void "v2 create, read, list, update and then delete a safe deposit box"(Map cerberusAuthPayloadData) {
+        String accountId = PropUtils.getPropWithDefaultValue("TEST_ACCOUNT_ID", "1111111111")
+        String roleName = PropUtils.getPropWithDefaultValue("TEST_ROLE_NAME", "fake_role")
         String cerberusAuthToken = cerberusAuthPayloadData.'client_token'
         String groups = cerberusAuthPayloadData.metadata.groups
         def group = groups.split(/,/)[0]
@@ -157,8 +162,8 @@ class CerberusCompositeApiActions {
         ]
         def iamPrincipalPermissions = [
             [
-                "iam_principal_arn": "arn:aws:iam::1111111111:role/fake_role",
-                "role_id": roleMap.write
+                "iam_principal_arn": "arn:aws:iam::$accountId:role/$roleName",
+                "role_id": roleMap.owner
             ]
         ]
 
