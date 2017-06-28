@@ -74,4 +74,4 @@ You can run this only these tests with the following command
     TEST_USER_PASSWORD=${PASSWORD} \
     TEST_USER_OTP_SECRET=${OTP_SECRET} \
     TEST_USER_OTP_DEVICE_ID=111111 \
-    gradlew clean -Dtest.single=CerberusIamApiTests cerberus-api-tests:test   
+    gradlew clean -Dtest.single=CerberusUserApiTests cerberus-api-tests:test   
