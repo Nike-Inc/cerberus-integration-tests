@@ -21,6 +21,7 @@ class CerberusApiActions {
 
     public static String V1_SAFE_DEPOSIT_BOX_PATH = "v1/safe-deposit-box"
     public static String V2_SAFE_DEPOSIT_BOX_PATH = "v2/safe-deposit-box"
+    public static String CLEAN_UP_PATH = "/v1/cleanup"
 
     /**
      * Executes a delete on the v1 auth endpoint to trigger a logout / destroy token action
@@ -373,5 +374,17 @@ class CerberusApiActions {
                 .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/list_success.json"))
         .extract().
                 body().jsonPath()
+    }
+
+    static void cleanUpOrphanedAndInactiveRecords(String cerberusAuthToken, Integer expirationPeriodInDays = null) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .body([
+                    kms_expiration_period_in_days: expirationPeriodInDays
+                ])
+        .when()
+                .put(CLEAN_UP_PATH)
+        .then()
+                .statusCode(204)  // no-content
     }
 }

@@ -245,6 +245,11 @@ class CerberusCompositeApiActions {
         }
     }
 
+    static void "clean up kms keys and iam roles is successful"(Map cerberusAuthPayloadData, Integer expirationPeriodInDays) {
+        String cerberusAuthToken = cerberusAuthPayloadData.'client_token'
+        cleanUpOrphanedAndInactiveRecords(cerberusAuthToken, expirationPeriodInDays)
+    }
+
     private static void assertIamPermissionsEquals(boolean isV1, def expectedIamPermissions, def actualIamPermissions) {
         assertEquals(expectedIamPermissions.size(), actualIamPermissions.size())
         for (def expectedPerm : expectedIamPermissions) {
