@@ -40,6 +40,7 @@ in the manner that is expected
 The following environment variables are required to run this test
 
 Environment Variable | Description
+---------------------|---------------------------
 TEST_ACCOUNT_ID      | The account id to use when authenticating with Cerberus using the IAM Auth endpoint
 TEST_ROLE_NAME       | The role name to use when authenticating with Cerberus using the IAM Auth endpoint
 TEST_REGION          | The region to use when authenticating with Cerberus using the IAM Auth endpoint
