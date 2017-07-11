@@ -46,7 +46,7 @@ class CerberusCleanUpApiTests {
                 "The region to use when authenticating with Cerberus using the IAM Auth endpoint")
     }
 
-    @Test
+    @Test(enabled = false)
     void "test that an authenticated admin IAM role can clean up KMS keys"() {
         "clean up kms keys and iam roles is successful"(cerberusAuthData, DEFAULT_KMS_EXPIRATION_PERIOD_IN_DAYS)
     }
