@@ -173,20 +173,18 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
     if (iamRoleArnParserMatcher.find()) {
       arn = s"arn:aws:iam::${iamRoleArnParserMatcher.group("accountId")}:role/${iamRoleArnParserMatcher.group("roleName")}"
     }
+    println(s"getArn() arn:$arn region:$region")
     arn
   }
 
   def authenticate(arn: String): String = {
+    println(s"authenticate() arn:$arn region:$region")
     if (StringUtils.isBlank(arn)) {
       throw new IllegalStateException()
     }
 
     try {
-      val data = CerberusApiActions.retrieveIamAuthToken(
-        arn,
-        region,
-        false
-      )
+      val data = CerberusApiActions.retrieveIamAuthToken(arn, region, assumeRole = false)
       data.asInstanceOf[LazyMap].get("client_token").asInstanceOf[String]
     } catch {
       case t: Throwable =>
