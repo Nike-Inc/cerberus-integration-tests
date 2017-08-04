@@ -184,7 +184,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
     }
 
     try {
-      val data = CerberusApiActions.retrieveIamAuthToken(arn, region, assumeRole = false)
+      val data = CerberusApiActions.retrieveIamAuthToken(arn, region, false)
       data.asInstanceOf[LazyMap].get("client_token").asInstanceOf[String]
     } catch {
       case t: Throwable =>
