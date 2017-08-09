@@ -61,7 +61,7 @@ task runSimulation() {
     dependsOn project.tasks.findByName('testClasses')
 
     doLast {
-        def simulationClassName = project.hasProperty('simulation') ? project.'simulation' : IamPrincipalAuthAndReadSimulation
+        def simulationClassName = project.hasProperty('simulation') ? project.'simulation' : "IamPrincipalAuthAndReadSimulation"
 
         String simulation = "com.nike.cerberus.$simulationClassName"
         String reportPath = "${project.getBuildDir().absolutePath}${File.separator}reports${File.separator}gatling"
