@@ -259,6 +259,8 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   }
 
   val httpConf: HttpProtocolBuilder = http.baseURL(cerberusBaseUrl)
+                                          .shareConnections
+                                          .maxConnectionsPerHost(1000)
 
   val scn: ScenarioBuilder =
     scenario("Iam principal authenticates and then reads secrets")
