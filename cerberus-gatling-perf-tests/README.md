@@ -17,6 +17,22 @@ PEAK_USERS | The peak number of simulated concurrent users for the test
 RAMP_UP_TIME_IN_MINUTES | The amount of time to ramp up from peak users to 0 users.
 HOLD_TIME_AFTER_PEAK_IN_MINUTES | The amount of minutes to hold the peak users for
 
+E.g. in a Bash terminal
+
+```bash
+   # Set required params
+   export CERBERUS_API_URL="https://dev.cerberus-oss.io/"
+   export CERBERUS_ACCOUNT_ID=1234567890
+   export REGION="us-east-1"
+   
+   # Set optional parameters
+   export NUMBER_OF_SERVICES_FOR_SIMULATION=1
+   export CREATE_IAM_ROLES=false
+   export PEAK_USERS=1
+   export RAMP_UP_TIME_IN_MINUTES=1
+   export HOLD_TIME_AFTER_PEAK_IN_MINUTES=1
+```
+
 ## Running
 
 ### Local
@@ -24,6 +40,10 @@ HOLD_TIME_AFTER_PEAK_IN_MINUTES | The amount of minutes to hold the peak users f
 You can use the following gradlew task
 
     ./gradlew clean cerberus-gatling-perf-tests:runSimulation
+    
+To determine your current account id and role use:
+
+    aws sts get-caller-identity
     
 ### Somewhere else
 
