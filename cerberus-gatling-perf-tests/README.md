@@ -35,4 +35,9 @@ You can trigger the tests via
 
     java -jar PATH/TO/JAR io.gatling.app.Gatling --simulation SIMULATION NAME -rf PATH/TO/SAVE/REPORT
     
+
+Additional Gatling [configuration parameters](https://github.com/gatling/gatling/blob/master/gatling-core/src/main/resources/gatling-defaults.conf) are available, e.g.
+
+    -Dgatling.http.ahc.connectTimeout=60000 -Dgatling.http.ahc.handshakeTimeout=60000 -Dgatling.http.ahc.requestTimeout=120000 -Dgatling.http.ahc.keepAlive=false    
+    
 See the [Gatling docs](http://gatling.io/docs/current/) for more information
