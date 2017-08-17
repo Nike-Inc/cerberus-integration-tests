@@ -33,9 +33,7 @@ E.g. in a Bash terminal
    export HOLD_TIME_AFTER_PEAK_IN_MINUTES=1
 ```
 
-## Running
-
-### Local
+## Running Locally
 
 You can use the following gradlew task
 
@@ -45,7 +43,7 @@ To determine your current account id and role use:
 
     aws sts get-caller-identity
     
-### Somewhere else
+## Running the Fat Jar
 
 The following gradle task can create a fat jar containing the tests
 
