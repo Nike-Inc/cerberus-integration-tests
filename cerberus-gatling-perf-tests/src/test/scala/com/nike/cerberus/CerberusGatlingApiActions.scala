@@ -13,6 +13,7 @@ object CerberusGatlingApiActions {
   val authenticate_and_fetch_encrypted_iam_auth_payload_and_store_in_session: ChainBuilder = exec(
     http("authenticate and fetch encrypted iam auth payload and store in session")
     .post("/v2/auth/iam-principal")
+    .header("X-Cerberus-Client", "GatlingTests/0.0.0")
     .body(StringBody(
       """
         |{
@@ -37,6 +38,7 @@ object CerberusGatlingApiActions {
     .get("/v1/secret/${sdb_root_path}")
     .queryParam("list", "true")
     .header("X-Vault-Token", "${auth_token}")
+    .header("X-Cerberus-Client", "GatlingTests/0.0.0")
     .check(status.is(200))
     .check(
       jsonPath("$.data.keys[*]").findAll.saveAs("node_keys")
@@ -48,6 +50,7 @@ object CerberusGatlingApiActions {
       http("read data from each node")
         .get("/v1/secret/${sdb_root_path}${key}")
         .header("X-Vault-Token", "${auth_token}")
+        .header("X-Cerberus-Client", "GatlingTests/0.0.0")
         .check(status.is(200))
     )
   }
