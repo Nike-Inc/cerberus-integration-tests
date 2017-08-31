@@ -21,7 +21,7 @@ import com.nike.cerberus.api.CerberusApiActions
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
 object VaultDataHelper {
@@ -35,22 +35,27 @@ object VaultDataHelper {
     ////////////////////////////
     // controls the number of nodes (paths in the storage structure that point to maps of data) to create for a given simulated services SDB
     val minNodesToCreate: Int = getPropWithDefaultValue("minNodesToCreate", "1").toInt
-    val maxNodesToCreate: Int = getPropWithDefaultValue("maxNodesToCreate", "3").toInt
+    val maxNodesToCreate: Int = getPropWithDefaultValue("maxNodesToCreate", "1").toInt
     // controls the path suffix
-    val minPathSuffixLength: Int = getPropWithDefaultValue("minPathSuffixLength", "5").toInt
-    val maxPathSuffixLength: Int = getPropWithDefaultValue("maxPathSuffixLength", "15").toInt
+    val minPathSuffixLength: Int = getPropWithDefaultValue("minPathSuffixLength", "7").toInt
+    val maxPathSuffixLength: Int = getPropWithDefaultValue("maxPathSuffixLength", "8").toInt
     // how many k,v pairs at each node
-    val minKeyValuePairsPerNode: Int = getPropWithDefaultValue("minKeyValuePairsPerNode", "1").toInt
-    val maxKeyValuePairsPerNode: Int = getPropWithDefaultValue("maxKeyValuePairsPerNode", "25").toInt
+    val minKeyValuePairsPerNode: Int = getPropWithDefaultValue("minKeyValuePairsPerNode", "7").toInt
+    val maxKeyValuePairsPerNode: Int = getPropWithDefaultValue("maxKeyValuePairsPerNode", "8").toInt
     // key length
-    val minKeyLength: Int = getPropWithDefaultValue("minKeyLength", "5").toInt
-    val maxKeyLength: Int = getPropWithDefaultValue("maxKeyLength", "10").toInt
+    val minKeyLength: Int = getPropWithDefaultValue("minKeyLength", "7").toInt
+    val maxKeyLength: Int = getPropWithDefaultValue("maxKeyLength", "8").toInt
     // value length
-    val minValueLength: Int = getPropWithDefaultValue("minValueLength", "5").toInt
-    val maxValueLength: Int = getPropWithDefaultValue("maxValueLength", "100").toInt
+    val minValueLength: Int = getPropWithDefaultValue("minValueLength", "49").toInt
+    val maxValueLength: Int = getPropWithDefaultValue("maxValueLength", "50").toInt
 
-    val numberOfNodesToCreate = scala.util.Random.nextInt(maxNodesToCreate - minNodesToCreate) + minNodesToCreate
-    for (_ <- 0 to numberOfNodesToCreate) {
+    val numberOfNodesToCreate = if (minNodesToCreate == maxNodesToCreate) {
+      minNodesToCreate
+    }
+    else {
+      scala.util.Random.nextInt(maxNodesToCreate - minNodesToCreate) + minNodesToCreate
+    }
+    for (_ <- 1 to numberOfNodesToCreate) {
       val pathSuffix = Random.alphanumeric.take(scala.util.Random.nextInt(maxPathSuffixLength - minPathSuffixLength) + minPathSuffixLength).mkString
       val numberOfKeyValuePairsToCreate = scala.util.Random.nextInt(maxKeyValuePairsPerNode - minKeyValuePairsPerNode) + minKeyValuePairsPerNode
       var data = mutable.HashMap[String, String]()
