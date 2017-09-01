@@ -39,7 +39,9 @@ E.g. in a Bash terminal
 
 ## Running Locally
 
-You can use the following gradlew task:
+First export required parameters and AWS credentials.
+
+Use the following gradlew task to run the default simulation:
 
     ./gradlew clean cerberus-gatling-perf-tests:runSimulation
 
