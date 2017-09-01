@@ -4,6 +4,10 @@
 
 ## Parameters
 
+Each simulation requires different parameters.
+
+## Parameters for IamPrincipalAuthAndReadSimulation
+
 These properties can be supplied to the simulation via environment variables or system properties
 
 Parameter | Description
@@ -35,9 +39,13 @@ E.g. in a Bash terminal
 
 ## Running Locally
 
-You can use the following gradlew task
+You can use the following gradlew task:
 
     ./gradlew clean cerberus-gatling-perf-tests:runSimulation
+
+To specify the simulation name:
+
+    ./gradlew cerberus-gatling-perf-tests:runSimulation -Psimulation=VaultDirectSimulation
     
 To determine your current account id and role use:
 
