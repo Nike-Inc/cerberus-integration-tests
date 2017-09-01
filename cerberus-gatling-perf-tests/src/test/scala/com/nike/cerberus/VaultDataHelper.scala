@@ -49,6 +49,28 @@ object VaultDataHelper {
     val minValueLength: Int = getPropWithDefaultValue("minValueLength", "49").toInt
     val maxValueLength: Int = getPropWithDefaultValue("maxValueLength", "50").toInt
 
+    println(
+      s"""
+         |
+         |######################################################################
+         |# VaultDataHelper settings                                           #
+         |######################################################################
+         |
+         |   minNodesToCreate: $minNodesToCreate
+         |   maxNodesToCreate: $maxNodesToCreate
+         |   minPathSuffixLength: $minPathSuffixLength
+         |   maxPathSuffixLength: $maxPathSuffixLength
+         |   minKeyValuePairsPerNode: $minKeyValuePairsPerNode
+         |   maxKeyValuePairsPerNode: $maxKeyValuePairsPerNode
+         |   minKeyLength: $minKeyLength
+         |   maxKeyLength: $maxKeyLength
+         |   minValueLength: $minValueLength
+         |   maxValueLength: $maxValueLength
+         |
+         |######################################################################
+         |
+      """.stripMargin)
+
     val numberOfNodesToCreate = if (minNodesToCreate == maxNodesToCreate) {
       minNodesToCreate
     }
