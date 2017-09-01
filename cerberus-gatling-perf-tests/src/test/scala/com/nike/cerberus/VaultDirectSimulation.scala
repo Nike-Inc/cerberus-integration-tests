@@ -59,11 +59,13 @@ class VaultDirectSimulation extends Simulation {
          |######################################################################
          |
          |   VAULT_ADDER: $vaultAddr
+         |   VAULT_TOKEN: <secret>
          |   NUMBER_OF_VAULT_NODES_TO_CREATE: $numberOfVaultNodesToCreate
          |   NUMBER_OF_RANDOM_READS: $numberOfRandomReadsPerAuth
          |   PEAK_USERS: $peakUsers
-         |   RAMP_UP_TIME_IN_MINUTES:  $rampUpTimeInMinutes
+         |   RAMP_UP_TIME_IN_MINUTES: $rampUpTimeInMinutes
          |   HOLD_TIME_AFTER_PEAK_IN_MINUTES: $holdTimeAfterPeakInMinutes
+         |   ORPHAN_TOKEN_TTL: $tokenTtl
          |
          |######################################################################
          |
