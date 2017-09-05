@@ -60,6 +60,10 @@ class VaultDirectSimulation extends Simulation {
   private val numberOfRandomReadsPerAuth = getPropWithDefaultValue("NUMBER_OF_RANDOM_READS", "3").toInt
   private val tokenTtl = getPropWithDefaultValue("ORPHAN_TOKEN_TTL", "5m")
 
+  def mask(token: String): String = {
+    token.replaceAll("[0-9a-zA-Z]{1}", "x")
+  }
+
   before {
     println(
       s"""
@@ -69,7 +73,7 @@ class VaultDirectSimulation extends Simulation {
          |######################################################################
          |
          |   VAULT_ADDER: $vaultAddr
-         |   VAULT_TOKEN: ${vaultToken.replaceAll("[0-9a-zA-Z]{1}", "x")}
+         |   VAULT_TOKEN: ${mask(vaultToken)}
          |   NUMBER_OF_VAULT_NODES_TO_CREATE: $numberOfVaultNodesToCreate
          |   NUMBER_OF_RANDOM_READS: $numberOfRandomReadsPerAuth
          |   PEAK_USERS: $peakUsers
@@ -169,7 +173,7 @@ class VaultDirectSimulation extends Simulation {
          |######################################################################
          |
          |   VAULT_ADDER: $vaultAddr
-         |   VAULT_TOKEN: ${vaultToken.replaceAll("[0-9a-zA-Z]{1}", "x")}
+         |   VAULT_TOKEN: ${mask(vaultToken)}
          |   NUMBER_OF_VAULT_NODES_TO_CREATE: $numberOfVaultNodesToCreate
          |   NUMBER_OF_RANDOM_READS: $numberOfRandomReadsPerAuth
          |   PEAK_USERS: $peakUsers
