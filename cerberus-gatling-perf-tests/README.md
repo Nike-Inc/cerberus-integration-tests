@@ -61,8 +61,13 @@ The following gradle task can create a fat jar containing the tests
     
 You can trigger the tests via 
 
-    java -jar PATH/TO/JAR io.gatling.app.Gatling --simulation SIMULATION NAME -rf PATH/TO/SAVE/REPORT
-    
+    java -cp PATH/TO/JAR io.gatling.app.Gatling --simulation SIMULATION NAME -rf PATH/TO/SAVE/REPORT
+
+To run VaultDirectSimulation
+
+    export VAULT_ADDR="..."
+    export VAULT_TOKEN="..."
+    java -jar cerberus-gatling-perf-tests-gatling-all.jar io.gatling.app.Gatling --simulation com.nike.cerberus.VaultDirectSimulation -rf .
 
 Additional Gatling [configuration parameters](https://github.com/gatling/gatling/blob/master/gatling-core/src/main/resources/gatling-defaults.conf) are available, e.g.
 
