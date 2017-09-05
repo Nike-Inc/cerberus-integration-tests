@@ -69,3 +69,19 @@ Additional Gatling [configuration parameters](https://github.com/gatling/gatling
     -Dgatling.http.ahc.connectTimeout=60000 -Dgatling.http.ahc.handshakeTimeout=60000 -Dgatling.http.ahc.requestTimeout=120000 -Dgatling.http.ahc.keepAlive=false    
     
 See the [Gatling docs](http://gatling.io/docs/current/) for more information
+
+## Troubleshooting
+
+### MacOS Open File Limits
+
+You may hit open file limits running these tests.
+
+View limits in MacOS
+
+    sysctl kern.maxfiles
+    sysctl kern.maxfilesperproc
+
+Change Limits in MacOS
+
+    sudo sysctl -w kern.maxfiles=300000
+    sudo sysctl -w kern.maxfilesperproc=300000
