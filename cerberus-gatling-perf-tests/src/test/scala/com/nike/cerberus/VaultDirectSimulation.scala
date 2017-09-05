@@ -29,6 +29,16 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.util.Random
 
+/**
+  * This test can be used to test Vault/Consul directly by generating traffic
+  * similar to what Cerberus generates, e.g. create an orphan token (simulating
+  * a request from CMS during auth), and using that token to read one or more
+  * secrets.
+  *
+  * This test can be used to test the Vault leader directly, the Vault ELB, or
+  * even the Gateway ELB (each of these may require modifying a default Cerberus
+  * environment to allow access).
+  */
 class VaultDirectSimulation extends Simulation {
 
   // Sessions keys
@@ -41,7 +51,7 @@ class VaultDirectSimulation extends Simulation {
   ///////////////////////////////////////////////////////////////////////////////
   //  LOAD REQUIRED PROPS, These can be set via ENV vars or System properties  //
   ///////////////////////////////////////////////////////////////////////////////
-  private val vaultAddr: String = getRequiredProperty("VAULT_ADDR", "The base Cerberus API URL")
+  private val vaultAddr: String = getRequiredProperty("VAULT_ADDR", "The base Vault API URL")
   private val vaultToken: String = getRequiredProperty("VAULT_TOKEN")
   private val peakUsers = getPropWithDefaultValue("PEAK_USERS", "1").toInt
   private val holdTimeAfterPeakInMinutes = getPropWithDefaultValue("HOLD_TIME_AFTER_PEAK_IN_MINUTES", "1").toInt
@@ -74,6 +84,7 @@ class VaultDirectSimulation extends Simulation {
     System.setProperty("CERBERUS_API_URL", vaultAddr)
     TestUtils.configureRestAssured()
 
+    // create random data in Vault
     for (_ <- 1 to numberOfVaultNodesToCreate) {
       try {
         val paths = VaultDataHelper.writeRandomData(vaultToken, s"vault-perf/${Random.alphanumeric.take(20).mkString}/")
@@ -94,7 +105,7 @@ class VaultDirectSimulation extends Simulation {
                                           .maxConnectionsPerHost(1000)
 
   val scn: ScenarioBuilder =
-    scenario("VaultDirectSimulation: Iam principal authenticates and then reads secrets")
+    scenario("VaultDirectSimulation: create orphan token and then read secrets")
       .exec(
         http("create an orphan token")
           .post("/v1/auth/token/create-orphan")
@@ -149,5 +160,25 @@ class VaultDirectSimulation extends Simulation {
           t.printStackTrace()
       }
     }
+
+    println(
+      s"""
+         |
+         |######################################################################
+         |# Parameters for this test were                                      #
+         |######################################################################
+         |
+         |   VAULT_ADDER: $vaultAddr
+         |   VAULT_TOKEN: ${vaultToken.replaceAll("[0-9a-zA-Z]{1}", "x")}
+         |   NUMBER_OF_VAULT_NODES_TO_CREATE: $numberOfVaultNodesToCreate
+         |   NUMBER_OF_RANDOM_READS: $numberOfRandomReadsPerAuth
+         |   PEAK_USERS: $peakUsers
+         |   RAMP_UP_TIME_IN_MINUTES: $rampUpTimeInMinutes
+         |   HOLD_TIME_AFTER_PEAK_IN_MINUTES: $holdTimeAfterPeakInMinutes
+         |   ORPHAN_TOKEN_TTL: $tokenTtl
+         |
+         |######################################################################
+         |
+      """.stripMargin)
   }
 }

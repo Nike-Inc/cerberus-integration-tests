@@ -332,5 +332,25 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
           t.printStackTrace()
       }
     }
+
+    println(
+      s"""
+         |
+         |######################################################################
+         |# Test was ran with the following parameters                         #
+         |######################################################################
+         |
+         |   CERBERUS_API_URL: $cerberusBaseUrl
+         |   CERBERUS_ACCOUNT_ID: $cerberusAccountId
+         |   REGION: $region
+         |   NUMBER_OF_SERVICES_FOR_SIMULATION: $numberOfServicesToUseForSimulation
+         |   CREATE_IAM_ROLES: $createIamRoles
+         |   PEAK_USERS: $peakUsers
+         |   RAMP_UP_TIME_IN_MINUTES:  $rampUpTimeInMinutes
+         |   HOLD_TIME_AFTER_PEAK_IN_MINUTES: $holdTimeAfterPeakInMinutes
+         |
+        |######################################################################
+         |
+      """.stripMargin)
   }
 }
