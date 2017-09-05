@@ -46,9 +46,9 @@ class VaultDirectSimulation extends Simulation {
   private val peakUsers = getPropWithDefaultValue("PEAK_USERS", "1").toInt
   private val holdTimeAfterPeakInMinutes = getPropWithDefaultValue("HOLD_TIME_AFTER_PEAK_IN_MINUTES", "1").toInt
   private val rampUpTimeInMinutes = getPropWithDefaultValue("RAMP_UP_TIME_IN_MINUTES", "1").toInt
-  private val numberOfVaultNodesToCreate = getPropWithDefaultValue("NUMBER_OF_VAULT_NODES_TO_CREATE", "10").toInt
-  private val numberOfRandomReadsPerAuth = getPropWithDefaultValue("NUMBER_OF_RANDOM_READS", "4").toInt
-  private val tokenTtl = getPropWithDefaultValue("ORPHAN_TOKEN_TTL", "10m")
+  private val numberOfVaultNodesToCreate = getPropWithDefaultValue("NUMBER_OF_VAULT_NODES_TO_CREATE", "1").toInt
+  private val numberOfRandomReadsPerAuth = getPropWithDefaultValue("NUMBER_OF_RANDOM_READS", "3").toInt
+  private val tokenTtl = getPropWithDefaultValue("ORPHAN_TOKEN_TTL", "5m")
 
   before {
     println(
@@ -59,7 +59,7 @@ class VaultDirectSimulation extends Simulation {
          |######################################################################
          |
          |   VAULT_ADDER: $vaultAddr
-         |   VAULT_TOKEN: <secret>
+         |   VAULT_TOKEN: ${vaultToken.replaceAll("[0-9a-zA-Z]{1}", "x")}
          |   NUMBER_OF_VAULT_NODES_TO_CREATE: $numberOfVaultNodesToCreate
          |   NUMBER_OF_RANDOM_READS: $numberOfRandomReadsPerAuth
          |   PEAK_USERS: $peakUsers
@@ -105,7 +105,7 @@ class VaultDirectSimulation extends Simulation {
             jsonPath("$.auth.client_token").find.saveAs("auth_token")
           )
       ).exec(exitHereIfFailed)
-      .repeat(4) {
+      .repeat(numberOfRandomReadsPerAuth) {
         feed(generatedData.random)
         .exec(
           http("read node from vault")
