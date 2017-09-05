@@ -47,7 +47,7 @@ class VaultDirectSimulation extends Simulation {
   private val holdTimeAfterPeakInMinutes = getPropWithDefaultValue("HOLD_TIME_AFTER_PEAK_IN_MINUTES", "1").toInt
   private val rampUpTimeInMinutes = getPropWithDefaultValue("RAMP_UP_TIME_IN_MINUTES", "1").toInt
   private val numberOfVaultNodesToCreate = getPropWithDefaultValue("NUMBER_OF_VAULT_NODES_TO_CREATE", "10").toInt
-  private val numberOfRandomReadsPerAuth = getPropWithDefaultValue("NUMBER_OF_RANDOM_READS", "99").toInt
+  private val numberOfRandomReadsPerAuth = getPropWithDefaultValue("NUMBER_OF_RANDOM_READS", "4").toInt
   private val tokenTtl = getPropWithDefaultValue("ORPHAN_TOKEN_TTL", "10m")
 
   before {
@@ -90,9 +90,11 @@ class VaultDirectSimulation extends Simulation {
   }
 
   val httpConf: HttpProtocolBuilder = http.baseURL(vaultAddr)
+                                          .shareConnections
+                                          .maxConnectionsPerHost(1000)
 
   val scn: ScenarioBuilder =
-    scenario("Iam principal authenticates and then reads secrets")
+    scenario("VaultDirectSimulation: Iam principal authenticates and then reads secrets")
       .exec(
         http("create an orphan token")
           .post("/v1/auth/token/create-orphan")
@@ -103,7 +105,7 @@ class VaultDirectSimulation extends Simulation {
             jsonPath("$.auth.client_token").find.saveAs("auth_token")
           )
       ).exec(exitHereIfFailed)
-      .repeat(numberOfRandomReadsPerAuth) {
+      .repeat(4) {
         feed(generatedData.random)
         .exec(
           http("read node from vault")
@@ -120,9 +122,9 @@ class VaultDirectSimulation extends Simulation {
     scn.inject(
       rampUsers(peakUsers) over(rampUpTimeInMinutes minutes),
       constantUsersPerSec(peakUsers) during(holdTimeAfterPeakInMinutes minutes)
-    ).throttle(
-      reachRps(peakUsers) in(rampUpTimeInMinutes minutes),
-      holdFor(holdTimeAfterPeakInMinutes minutes)
+//    ).throttle(
+//      reachRps(peakUsers) in(rampUpTimeInMinutes minutes),
+//      holdFor(holdTimeAfterPeakInMinutes minutes)
     )
   ).protocols(httpConf)
 
