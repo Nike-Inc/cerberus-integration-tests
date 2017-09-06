@@ -59,7 +59,7 @@ class VaultDirectSimulation extends Simulation {
   private val numberOfVaultNodesToCreate = getPropWithDefaultValue("NUMBER_OF_VAULT_NODES_TO_CREATE", "1").toInt
   private val numberOfRandomReadsPerAuth = getPropWithDefaultValue("NUMBER_OF_RANDOM_READS", "3").toInt
   private val tokenTtl = getPropWithDefaultValue("ORPHAN_TOKEN_TTL", "5m")
-  private val maxConnectionsPerHost = getPropWithDefaultValue("MAX_CONNECTIONS_PER_HOST", "1000").toInt
+  private val maxConnectionsPerHost = getPropWithDefaultValue("MAX_CONNECTIONS_PER_HOST", "10000").toInt
 
   def mask(token: String): String = {
     token.replaceAll("[0-9a-zA-Z]{1}", "x")
