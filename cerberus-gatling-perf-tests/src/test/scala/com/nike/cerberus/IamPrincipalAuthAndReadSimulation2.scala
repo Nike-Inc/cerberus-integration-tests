@@ -295,18 +295,8 @@ class IamPrincipalAuthAndReadSimulation2 extends Simulation {
   setUp(
     scn.inject(
       nothingFor(30 seconds), // let the created IAM roles be eventually consistent
-      rampUsersPerSec(1) to 200 / numberOfLoadServers during(60 minutes),
-      constantUsersPerSec(200 / numberOfLoadServers) during(60 minutes),
-      rampUsersPerSec(200 / numberOfLoadServers) to 300 / numberOfLoadServers during(60 minutes),
-      constantUsersPerSec(300 / numberOfLoadServers) during(60 minutes),
-      rampUsersPerSec(300 / numberOfLoadServers) to 400 / numberOfLoadServers during(60 minutes),
-      constantUsersPerSec(400 / numberOfLoadServers) during(60 minutes),
-      rampUsersPerSec(400 / numberOfLoadServers) to 500 / numberOfLoadServers during(60 minutes),
-      constantUsersPerSec(500 / numberOfLoadServers) during(60 minutes),
-      rampUsersPerSec(500 / numberOfLoadServers) to 600 / numberOfLoadServers during(60 minutes),
-      constantUsersPerSec(600 / numberOfLoadServers) during(60 minutes),
-      rampUsersPerSec(600 / numberOfLoadServers) to 700 / numberOfLoadServers during(60 minutes),
-      constantUsersPerSec(700 / numberOfLoadServers) during(60 minutes)
+      rampUsersPerSec(1) to 334 / numberOfLoadServers during(60 minutes),
+      constantUsersPerSec(334 / numberOfLoadServers) during(120 minutes), // About 1000 RPS
     )
   ).protocols(httpConf)
 
