@@ -73,6 +73,7 @@ class IamPrincipalAuthAndReadSimulation2 extends Simulation {
   private val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
   private val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
   private val createIamRoles = getPropWithDefaultValue("CREATE_IAM_ROLES", "false").toBoolean
+  private val numberOfLoadServers = getRequiredProperty("NUMBER_LOAD_SERVERS", "number of load servers to divide load numbers by").toInt
 
   before {
     println(
@@ -294,18 +295,18 @@ class IamPrincipalAuthAndReadSimulation2 extends Simulation {
   setUp(
     scn.inject(
       nothingFor(30 seconds), // let the created IAM roles be eventually consistent
-      rampUsersPerSec(1) to 200 during(60 minutes),
-      constantUsersPerSec(200) during(60 minutes),
-      rampUsersPerSec(200) to 300 during(60 minutes),
-      constantUsersPerSec(300) during(60 minutes),
-      rampUsersPerSec(300) to 400 during(60 minutes),
-      constantUsersPerSec(400) during(60 minutes),
-      rampUsersPerSec(400) to 500 during(60 minutes),
-      constantUsersPerSec(500) during(60 minutes),
-      rampUsersPerSec(500) to 600 during(60 minutes),
-      constantUsersPerSec(600) during(60 minutes),
-      rampUsersPerSec(600) to 700 during(60 minutes),
-      constantUsersPerSec(700) during(60 minutes)
+      rampUsersPerSec(1) to 200 / numberOfLoadServers during(60 minutes),
+      constantUsersPerSec(200 / numberOfLoadServers) during(60 minutes),
+      rampUsersPerSec(200 / numberOfLoadServers) to 300 / numberOfLoadServers during(60 minutes),
+      constantUsersPerSec(300 / numberOfLoadServers) during(60 minutes),
+      rampUsersPerSec(300 / numberOfLoadServers) to 400 / numberOfLoadServers during(60 minutes),
+      constantUsersPerSec(400 / numberOfLoadServers) during(60 minutes),
+      rampUsersPerSec(400 / numberOfLoadServers) to 500 / numberOfLoadServers during(60 minutes),
+      constantUsersPerSec(500 / numberOfLoadServers) during(60 minutes),
+      rampUsersPerSec(500 / numberOfLoadServers) to 600 / numberOfLoadServers during(60 minutes),
+      constantUsersPerSec(600 / numberOfLoadServers) during(60 minutes),
+      rampUsersPerSec(600 / numberOfLoadServers) to 700 / numberOfLoadServers during(60 minutes),
+      constantUsersPerSec(700 / numberOfLoadServers) during(60 minutes)
     )
   ).protocols(httpConf)
 
