@@ -123,6 +123,7 @@ class IamPrincipalAuthAndReadSimulation2 extends Simulation {
         val role: Role = createRole(cerberusAccountId, currentIamPrincipalArn, iam)
         createdRoleArn = role.getArn
         createdRoleName = role.getRoleName
+        Thread.sleep(1000)
       } else {
         createdRoleArn = currentIamPrincipalArn
         createdRoleName = currentIamPrincipalArn
