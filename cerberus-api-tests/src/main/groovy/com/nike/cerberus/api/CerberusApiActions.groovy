@@ -12,6 +12,7 @@ import com.google.common.cache.CacheBuilder
 import groovy.json.JsonSlurper
 import io.restassured.path.json.JsonPath
 import io.restassured.response.Response
+import org.apache.http.HttpStatus
 
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
@@ -26,6 +27,12 @@ class CerberusApiActions {
     public static String V1_SAFE_DEPOSIT_BOX_PATH = "v1/safe-deposit-box"
     public static String V2_SAFE_DEPOSIT_BOX_PATH = "v2/safe-deposit-box"
     public static String CLEAN_UP_PATH = "/v1/cleanup"
+    public static String SECRETS_PATH = "/v1/secret"
+    public static String IAM_ROLE_AUTH_PATH = "/v1/auth/iam-role"
+    public static String IAM_PRINCIPAL_AUTH_PATH = "/v2/auth/iam-principal"
+    public static String USER_AUTH_PATH = "v2/auth/user"
+    public static String AUTH_TOKEN_HEADER_NAME = "X-Vault-Token"
+    public static String USER_CREDENTIALS_HEADER_NAME = "Authorization"
 
     /**
      * Use a cache of KMS clients because creating too many kmsCLients causes a performance bottleneck
@@ -403,5 +410,47 @@ class CerberusApiActions {
                 .put(CLEAN_UP_PATH)
         .then()
                 .statusCode(204)  // no-content
+    }
+
+    static void validateGETApiResponse(String headerName, String headerValue, String requestPath, int statusCode, String pathToJsonSchemaFile) {
+        given()
+                .header(headerName, headerValue)
+        .when()
+                .get(requestPath)
+        .then()
+                .statusCode(statusCode)
+                .assertThat().body(matchesJsonSchemaInClasspath(pathToJsonSchemaFile))
+    }
+
+    static void validatePUTApiResponse(String cerberusAuthToken, String requestPath, int statusCode, String pathToJsonSchemaFile, Map body) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .body(body)
+        .when()
+                .put(requestPath)
+        .then()
+                .statusCode(statusCode)
+                .assertThat().body(matchesJsonSchemaInClasspath(pathToJsonSchemaFile))
+    }
+
+    static void validatePOSTApiResponse(String cerberusAuthToken, String requestPath, int statusCode, String pathToJsonSchemaFile, Map body) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+                .body(body)
+        .when()
+                .post(requestPath)
+        .then()
+                .statusCode(statusCode)
+                .assertThat().body(matchesJsonSchemaInClasspath(pathToJsonSchemaFile))
+    }
+
+    static void validateDELETEApiResponse(String cerberusAuthToken, String requestPath, int statusCode, String pathToJsonSchemaFile) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .delete(requestPath)
+        .then()
+                .statusCode(statusCode)
+                .assertThat().body(matchesJsonSchemaInClasspath(pathToJsonSchemaFile))
     }
 }

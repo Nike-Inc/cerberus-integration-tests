@@ -4,6 +4,7 @@ import com.fieldju.commons.PropUtils
 import com.thedeanda.lorem.Lorem
 import io.restassured.path.json.JsonPath
 import org.apache.commons.lang3.RandomStringUtils
+import org.apache.http.HttpStatus
 import org.jboss.aerogear.security.otp.Totp
 
 import static org.junit.Assert.assertEquals
@@ -15,6 +16,7 @@ class CerberusCompositeApiActions {
     private CerberusCompositeApiActions() {}
 
     static final String ROOT_INTEGRATION_TEST_SDB_PATH = "app/cerberus-integration-tests-sdb"
+    static final String NEGATIVE_JSON_SCHEMA_ROOT_PATH = "json-schema/negative"
 
     static void "create, read, update then delete a secret node"(String cerberusAuthToken) {
         def path = "${ROOT_INTEGRATION_TEST_SDB_PATH}/${UUID.randomUUID().toString()}"
@@ -248,6 +250,71 @@ class CerberusCompositeApiActions {
     static void "clean up kms keys and iam roles is successful"(Map cerberusAuthPayloadData, Integer expirationPeriodInDays) {
         String cerberusAuthToken = cerberusAuthPayloadData.'client_token'
         cleanUpOrphanedAndInactiveRecords(cerberusAuthToken, expirationPeriodInDays)
+    }
+
+    static void "create, read, update, list secrets with invalid auth token"() {
+        def requestUriPath = "$SECRETS_PATH/$ROOT_INTEGRATION_TEST_SDB_PATH/${UUID.randomUUID().toString()}"
+        def schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/generic-secret-invalid-auth-token-resp.json"
+        String value1 = 'value1'
+        String value2 = 'value2'
+        String invalidAuthToken = 'invalid-auth-token'
+
+        // create secret
+        validatePOSTApiResponse(invalidAuthToken, requestUriPath, HttpStatus.SC_FORBIDDEN, schemaFilePath, [value: value1])
+        // read secret
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, invalidAuthToken, requestUriPath, HttpStatus.SC_FORBIDDEN, schemaFilePath)
+        // list secrets
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, invalidAuthToken, requestUriPath, HttpStatus.SC_FORBIDDEN, schemaFilePath)
+        // update the secret node
+        validatePOSTApiResponse(invalidAuthToken, requestUriPath, HttpStatus.SC_FORBIDDEN, schemaFilePath, [value: value2])
+        // delete the node
+        validateDELETEApiResponse(invalidAuthToken, requestUriPath, HttpStatus.SC_FORBIDDEN, schemaFilePath)
+    }
+
+    static void "v1 create, read, update, list safe-deposit-boxes with invalid auth token"() {
+        def iamRolePermissions = [["iam_principal_arn": "arn:aws:iam::111111:role/fake_role", "role_id": "owner"]]
+
+        "create, read, update, list safe-deposit-boxes with invalid auth token"(V1_SAFE_DEPOSIT_BOX_PATH, iamRolePermissions)
+    }
+
+    static void "v2 create, read, update, list safe-deposit-boxes with invalid auth token"() {
+        String accountId = "1111111111"
+        String roleName = "fake_role"
+        def iamRolePermissions = [["account_id": accountId, "iam_role_name": roleName, "role_id": "owner"]]
+
+        "create, read, update, list safe-deposit-boxes with invalid auth token"(V2_SAFE_DEPOSIT_BOX_PATH, iamRolePermissions)
+    }
+
+    static void "create, read, update, list safe-deposit-boxes with invalid auth token"(String baseUriPath, iamRolePermissions) {
+        String invalidAuthToken = 'invalid-auth-token'
+        String requestPath = "$baseUriPath/0000-0000-0000-0000"
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/generic-sdb-invalid-auth-token-resp.json"
+
+        String name = "${RandomStringUtils.randomAlphabetic(5, 10)} ${RandomStringUtils.randomAlphabetic(5, 10)}"
+        String description = "${Lorem.getWords(50)}"
+        String categoryId = "category id"
+        String owner = "user group"
+
+        def userGroupPermissions = [["name": 'foo', "role_id": "read"]]
+        def sdb = [
+                name                  : name,
+                description           : description,
+                category_id           : categoryId,
+                owner                 : owner,
+                user_group_permissions: userGroupPermissions,
+                iam_role_permissions  : iamRolePermissions
+        ]
+
+        // create
+        validatePOSTApiResponse(invalidAuthToken, baseUriPath, HttpStatus.SC_UNAUTHORIZED, schemeFilePath, sdb)
+        // read
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, invalidAuthToken, requestPath, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
+        // list
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, invalidAuthToken, baseUriPath, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
+        // update
+        validatePUTApiResponse(invalidAuthToken, requestPath, HttpStatus.SC_UNAUTHORIZED, schemeFilePath, sdb)
+        // delete
+        validateDELETEApiResponse(invalidAuthToken, requestPath, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
     }
 
     private static void assertIamPermissionsEquals(boolean isV1, def expectedIamPermissions, def actualIamPermissions) {
