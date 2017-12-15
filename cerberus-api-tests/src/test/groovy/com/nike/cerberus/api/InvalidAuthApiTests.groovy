@@ -1,19 +1,34 @@
 package com.nike.cerberus.api
 
 import com.nike.cerberus.api.util.TestUtils
+import com.thedeanda.lorem.Lorem
+import org.apache.commons.lang3.RandomStringUtils
 import org.apache.http.HttpStatus
 import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
 
+import static com.nike.cerberus.api.CerberusApiActions.AUTH_TOKEN_HEADER_NAME
 import static com.nike.cerberus.api.CerberusApiActions.IAM_PRINCIPAL_AUTH_PATH
 import static com.nike.cerberus.api.CerberusApiActions.IAM_ROLE_AUTH_PATH
+import static com.nike.cerberus.api.CerberusApiActions.SECRETS_PATH
 import static com.nike.cerberus.api.CerberusApiActions.USER_AUTH_PATH
 import static com.nike.cerberus.api.CerberusApiActions.USER_CREDENTIALS_HEADER_NAME
+import static com.nike.cerberus.api.CerberusApiActions.V1_SAFE_DEPOSIT_BOX_PATH
+import static com.nike.cerberus.api.CerberusApiActions.V2_SAFE_DEPOSIT_BOX_PATH
+import static com.nike.cerberus.api.CerberusApiActions.validateDELETEApiResponse
 import static com.nike.cerberus.api.CerberusApiActions.validateGETApiResponse
 import static com.nike.cerberus.api.CerberusApiActions.validatePOSTApiResponse
+import static com.nike.cerberus.api.CerberusApiActions.validatePUTApiResponse
 import static com.nike.cerberus.api.CerberusCompositeApiActions.*
 
 class InvalidAuthApiTests {
+
+    static final String INVALID_AUTH_TOKEN_STR = "invalid-auth-token"
+    static final FAKE_SECRET_REQUEST_URI_PATH = "$SECRETS_PATH/$ROOT_INTEGRATION_TEST_SDB_PATH/${UUID.randomUUID().toString()}"
+    static final V1_FAKE_SDB_PATH = "$V1_SAFE_DEPOSIT_BOX_PATH/0000-0000-0000-0000"
+    static final V2_FAKE_SDB_PATH = "$V1_SAFE_DEPOSIT_BOX_PATH/1111-1111-1111-1111"
+    static final String FAKE_ACCOUNT_ID = "1111111111"
+    static final String FAKE_ROLE_NAME = "fake_role"
 
     @BeforeTest
     void beforeTest() {
@@ -21,18 +36,122 @@ class InvalidAuthApiTests {
     }
 
     @Test
-    void "test that a secret cannot be created, read, updated or deleted with an invalid token"() {
-        "create, read, update, list secrets with invalid auth token"()
+    void "test that a secret cannot be created with an invalid token"() {
+        def schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/permission-denied-invalid-auth-token-error.json"
+
+        validatePOSTApiResponse(INVALID_AUTH_TOKEN_STR, FAKE_SECRET_REQUEST_URI_PATH, HttpStatus.SC_FORBIDDEN, schemaFilePath, [value: 'value'])
     }
 
     @Test
-    void "v1 test that a safe deposit box cannot be created, read, updated or deleted with an invalid token"() {
-        "v1 create, read, update, list safe-deposit-boxes with invalid auth token"()
+    void "test that a secret cannot be read with an invalid token"() {
+        def schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/permission-denied-invalid-auth-token-error.json"
+
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, INVALID_AUTH_TOKEN_STR, FAKE_SECRET_REQUEST_URI_PATH, HttpStatus.SC_FORBIDDEN, schemaFilePath)
     }
 
     @Test
-    void "v2 test that a safe deposit box cannot be created, read, updated or deleted with an invalid token"() {
-        "v2 create, read, update, list safe-deposit-boxes with invalid auth token"()
+    void "test that a secret cannot be listed with an invalid token"() {
+        def listSecretsRequestUri = "$SECRETS_PATH/$ROOT_INTEGRATION_TEST_SDB_PATH/?list=true"
+        def schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/permission-denied-invalid-auth-token-error.json"
+
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, INVALID_AUTH_TOKEN_STR, listSecretsRequestUri, HttpStatus.SC_FORBIDDEN, schemaFilePath)
+    }
+
+    @Test
+    void "test that a secret cannot be updated with an invalid token"() {
+        def schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/permission-denied-invalid-auth-token-error.json"
+
+        validatePOSTApiResponse(INVALID_AUTH_TOKEN_STR, FAKE_SECRET_REQUEST_URI_PATH, HttpStatus.SC_FORBIDDEN, schemaFilePath, [value: 'new value'])
+    }
+
+    @Test
+    void "test that a secret cannot be delete with an invalid token"() {
+        def schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/permission-denied-invalid-auth-token-error.json"
+
+        validateDELETEApiResponse(INVALID_AUTH_TOKEN_STR, FAKE_SECRET_REQUEST_URI_PATH, HttpStatus.SC_FORBIDDEN, schemaFilePath)
+    }
+
+    @Test
+    void "test that a v1 safe deposit box cannot be created with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        def iamRolePermissions = [["account_id": FAKE_ACCOUNT_ID, "iam_role_name": FAKE_ROLE_NAME, "role_id": "owner"]]
+        def sdb = generateSafeDepositBox(iamRolePermissions)
+
+        validatePOSTApiResponse(INVALID_AUTH_TOKEN_STR, V1_SAFE_DEPOSIT_BOX_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath, sdb)
+    }
+
+    @Test
+    void "test that a v1 safe deposit box cannot be read with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, INVALID_AUTH_TOKEN_STR, V1_FAKE_SDB_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
+    }
+
+    @Test
+    void "test that a v1 safe deposit boxes cannot be listed with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, INVALID_AUTH_TOKEN_STR, V1_FAKE_SDB_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
+    }
+
+    @Test
+    void "test that a v1 safe deposit box cannot be updated with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        def iamRolePermissions = [["account_id": "98989898989", "iam_role_name": "a-fake-role-name", "role_id": "owner"]]
+        def sdb = generateSafeDepositBox(iamRolePermissions)
+
+        validatePUTApiResponse(INVALID_AUTH_TOKEN_STR, V1_FAKE_SDB_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath, sdb)
+    }
+
+    @Test
+    void "test that a v1 safe deposit box cannot be deleted with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        validateDELETEApiResponse(INVALID_AUTH_TOKEN_STR, V1_FAKE_SDB_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
+    }
+
+
+    @Test
+    void "test that a v2 safe deposit box cannot be created with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        def iamRolePermissions = [["account_id": FAKE_ACCOUNT_ID, "iam_role_name": FAKE_ROLE_NAME, "role_id": "owner"]]
+        def sdb = generateSafeDepositBox(iamRolePermissions)
+
+        validatePOSTApiResponse(INVALID_AUTH_TOKEN_STR, V2_SAFE_DEPOSIT_BOX_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath, sdb)
+    }
+
+    @Test
+    void "test that a v2 safe deposit box cannot be read with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, INVALID_AUTH_TOKEN_STR, V2_FAKE_SDB_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
+    }
+
+    @Test
+    void "test that a v2 safe deposit boxes cannot be listed with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, INVALID_AUTH_TOKEN_STR, V2_SAFE_DEPOSIT_BOX_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
+    }
+
+    @Test
+    void "test that a v2 safe deposit box cannot be updated with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        def iamRolePermissions = [["account_id": "98989898989", "iam_role_name": "a-fake-role-name", "role_id": "owner"]]
+        def sdb = generateSafeDepositBox(iamRolePermissions)
+
+        validatePUTApiResponse(INVALID_AUTH_TOKEN_STR, V2_FAKE_SDB_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath, sdb)
+    }
+
+    @Test
+    void "test that a v2 safe deposit box cannot be deleted with an invalid token"() {
+        String schemeFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/auth-token-is-malformed-cms-error.json"
+
+        validateDELETEApiResponse(INVALID_AUTH_TOKEN_STR, V2_FAKE_SDB_PATH, HttpStatus.SC_UNAUTHORIZED, schemeFilePath)
     }
 
     @Test
@@ -63,5 +182,23 @@ class InvalidAuthApiTests {
         def credentialsHeaderValue = "Basic ${"$email:$password".bytes.encodeBase64()}"
 
         validateGETApiResponse(USER_CREDENTIALS_HEADER_NAME, credentialsHeaderValue, USER_AUTH_PATH, HttpStatus.SC_UNAUTHORIZED, schemaFilePath)
+    }
+
+    private static Map generateSafeDepositBox(def iamPermissions) {
+        String name = "${RandomStringUtils.randomAlphabetic(5, 10)} ${RandomStringUtils.randomAlphabetic(5, 10)}"
+        String description = "${Lorem.getWords(50)}"
+        String categoryId = "category id"
+        String owner = "user group"
+
+        def userGroupPermissions = [["name": 'foo', "role_id": "read"]]
+
+        return [
+                name                  : name,
+                description           : description,
+                category_id           : categoryId,
+                owner                 : owner,
+                user_group_permissions: userGroupPermissions,
+                iam_role_permissions  : iamPermissions
+        ]
     }
 }
