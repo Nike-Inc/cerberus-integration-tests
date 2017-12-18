@@ -114,3 +114,12 @@ You can run this only these tests with the following command
     TEST_IAM_PRINCIPAL_ARN=arn:aws:iam::000000000000:role/admin-role-name \
     TEST_REGION=us-west-2 \
     gradlew clean -Dtest.single=CerberusCleanUpApiTests cerberus-api-tests:test
+
+### Invalid Auth API Tests
+
+This is a series of tests that neither users nor IAM roles can make calls without a valid auth token  
+
+You can run this only these tests with the following command
+
+    CERBERUS_API_URL=http://127.0.0.1:9000 \
+    gradlew clean -Dtest.single=FailedAuthenticationApiTests cerberus-api-tests:test

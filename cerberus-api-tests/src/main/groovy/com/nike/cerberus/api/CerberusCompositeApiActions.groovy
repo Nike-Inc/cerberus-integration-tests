@@ -15,6 +15,7 @@ class CerberusCompositeApiActions {
     private CerberusCompositeApiActions() {}
 
     static final String ROOT_INTEGRATION_TEST_SDB_PATH = "app/cerberus-integration-tests-sdb"
+    static final String NEGATIVE_JSON_SCHEMA_ROOT_PATH = "json-schema/negative"
 
     static void "create, read, update then delete a secret node"(String cerberusAuthToken) {
         def path = "${ROOT_INTEGRATION_TEST_SDB_PATH}/${UUID.randomUUID().toString()}"

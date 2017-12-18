@@ -1,0 +1,22 @@
+{
+  "definitions": {}, 
+  "$schema": "http://json-schema.org/draft-06/schema#", 
+  "$id": "http://example.com/example.json", 
+  "type": "object", 
+  "properties": {
+    "errors": {
+      "$id": "/properties/errors", 
+      "type": "array", 
+      "items": {
+        "$id": "/properties/errors/items", 
+        "type": "string", 
+        "title": "The 0 Schema.", 
+        "description": "An explanation about the purpose of this instance.", 
+        "default": "", 
+        "examples": [
+          "permission denied"
+        ]
+      }
+    }
+  }
+}
