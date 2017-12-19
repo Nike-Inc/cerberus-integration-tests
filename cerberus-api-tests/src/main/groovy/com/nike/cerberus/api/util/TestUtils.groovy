@@ -2,7 +2,9 @@ package com.nike.cerberus.api.util
 
 import com.fieldju.commons.PropUtils
 import com.nike.cerberus.api.GatewaySslSocketFactory
+import com.thedeanda.lorem.Lorem
 import io.restassured.config.SSLConfig
+import org.apache.commons.lang3.RandomStringUtils
 import org.apache.http.conn.ssl.SSLSocketFactory
 
 import javax.net.ssl.SSLContext
@@ -26,5 +28,25 @@ class TestUtils {
         config = config().sslConfig(
                 SSLConfig.sslConfig().sslSocketFactory(customSslFactory))
         config.getHttpClientConfig().reuseHttpClientInstance()
+    }
+
+    static String generateRandomSdbName() {
+        return "${RandomStringUtils.randomAlphabetic(5,10)} ${RandomStringUtils.randomAlphabetic(5,10)}"
+    }
+
+    static String generateRandomSdbDescription() {
+        return "${Lorem.getWords(50)}"
+    }
+
+    static Map generateSdbJson(String description,
+                                       String owner,
+                                       List<Map<String, String>> userGroupPermissions,
+                                       List<Map<String, String>> iamPrincipalPermissions) {
+        return [
+                description: description,
+                owner: owner,
+                'user_group_permissions': userGroupPermissions,
+                'iam_role_permissions': iamPrincipalPermissions
+        ]
     }
 }
