@@ -3,7 +3,6 @@ package com.nike.cerberus.api
 import com.amazonaws.auth.profile.internal.securitytoken.RoleInfo
 import com.amazonaws.auth.profile.internal.securitytoken.STSProfileCredentialsServiceProvider
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.kms.AWSKMS
 import com.amazonaws.services.kms.AWSKMSClient
 import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.services.kms.model.DecryptResult
@@ -12,7 +11,6 @@ import com.google.common.cache.CacheBuilder
 import groovy.json.JsonSlurper
 import io.restassured.path.json.JsonPath
 import io.restassured.response.Response
-import org.apache.http.HttpStatus
 
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
@@ -21,6 +19,8 @@ import static io.restassured.RestAssured.*
 import static io.restassured.module.jsv.JsonSchemaValidator.*
 import static org.hamcrest.Matchers.*
 import static org.junit.Assert.*
+
+import static com.nike.cerberus.api.CerberusCompositeApiActions.*
 
 class CerberusApiActions {
 
@@ -53,6 +53,20 @@ class CerberusApiActions {
                 .delete("/v1/auth")
         .then()
                 .statusCode(204)
+    }
+
+    static def retrieveUserAuthToken(username, password, otpSecret, otpDeviceId, retryCount = 0) {
+        try {
+            Map authResult = "login user with multi factor authentication (or skip mfa if not required) and return auth data"(username, password, otpSecret, otpDeviceId)
+            System.out.println("user login successful on try " + retryCount)
+            authResult
+        } catch (Throwable t) {
+            System.err.println("user login failed on try " + retryCount)
+            if (retryCount < 3) {
+                sleep(10000)
+                return retrieveUserAuthToken(username, password, otpSecret, otpDeviceId, retryCount + 1)
+            } else {throw t}
+        }
     }
 
     /**
@@ -452,5 +466,27 @@ class CerberusApiActions {
         .then()
                 .statusCode(statusCode)
                 .assertThat().body(matchesJsonSchemaInClasspath(pathToJsonSchemaFile))
+    }
+
+    static Map getRoleMap(String cerberusAuthToken) {
+        // Create a map of role ids to names
+        JsonPath getRolesResponse = getRoles(cerberusAuthToken)
+        def roleMap = [:]
+        getRolesResponse.getList("").each { role ->
+            roleMap.put role.name, role.id
+        }
+
+        return roleMap
+    }
+
+    static Map getCategoryMap(String cerberusAuthToken) {
+        // Create a map of category ids to names'
+        JsonPath getCategoriesResponse = getCategories(cerberusAuthToken)
+        def catMap = [:]
+        getCategoriesResponse.getList("").each { category ->
+            catMap.put category.display_name, category.id
+        }
+
+        return catMap
     }
 }
