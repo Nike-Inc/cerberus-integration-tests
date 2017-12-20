@@ -3,6 +3,7 @@ package com.nike.cerberus.api.util
 import com.fieldju.commons.PropUtils
 import com.nike.cerberus.api.GatewaySslSocketFactory
 import com.thedeanda.lorem.Lorem
+import io.restassured.RestAssured
 import io.restassured.config.SSLConfig
 import org.apache.commons.lang3.RandomStringUtils
 import org.apache.http.conn.ssl.SSLSocketFactory
@@ -20,6 +21,9 @@ class TestUtils {
 
     static void configureRestAssured() throws NoSuchAlgorithmException {
         baseURI = PropUtils.getRequiredProperty("CERBERUS_API_URL", "The Cerberus API URL to Test")
+
+        System.out.println("Configuring rest assured to use baseURI: " + baseURI)
+
         enableLoggingOfRequestAndResponseIfValidationFails()
 
         // Use our custom socket factory to enable SSL with SNI
@@ -28,6 +32,10 @@ class TestUtils {
         config = config().sslConfig(
                 SSLConfig.sslConfig().sslSocketFactory(customSslFactory))
         config.getHttpClientConfig().reuseHttpClientInstance()
+
+        System.out.print("Performing sanity check get on /dashboard/index.html..")
+        RestAssured.get(baseURI + "/dashboard/index.html").then().statusCode(200)
+        System.out.println(" Success!")
     }
 
     static String generateRandomSdbName() {
