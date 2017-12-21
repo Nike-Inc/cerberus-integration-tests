@@ -123,12 +123,12 @@ class ValidationErrorApiTests {
         String iamPrincipalArn = "arn:aws:iam::${accountId}:role/${roleName}"
         def iamPrincipalPermissions = [["iam_principal_arn": iamPrincipalArn, "role_id": ownerRoleId]]
         def sdbObject = [
-                category_id: sdbCategoryId,
-                name: alreadyExistingSdbName,
-                description: sdbDescription,
-                owner: iamPrincipalArn,
+                category_id             : sdbCategoryId,
+                name                    : alreadyExistingSdbName,
+                description             : sdbDescription,
+                owner                   : iamPrincipalArn,
                 'user_group_permissions': [],
-                'iam_role_permissions': iamPrincipalPermissions
+                'iam_role_permissions'  : iamPrincipalPermissions
         ]
 
         String schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/create-sdb-with-the-same-name.json"
