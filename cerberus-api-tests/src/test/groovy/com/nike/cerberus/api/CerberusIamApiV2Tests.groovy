@@ -11,6 +11,7 @@ import java.security.NoSuchAlgorithmException
 
 import static com.nike.cerberus.api.CerberusCompositeApiActions.*
 import static com.nike.cerberus.api.CerberusApiActions.*
+import static com.nike.cerberus.api.util.TestUtils.generateRandomSdbDescription
 
 class CerberusIamApiV2Tests {
 
@@ -60,5 +61,24 @@ class CerberusIamApiV2Tests {
     @Test
     void "test that an authenticated IAM role can create, read, update then delete a safe deposit box v2"() {
         "v2 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
+    }
+
+    @Test
+    void "test that an SDB can be created with two IAM roles in permissions"() {
+        String iamAuthToken = cerberusAuthData.client_token
+        String sdbCategoryId = getCategoryMap(iamAuthToken).Applications
+        String sdbDescription = generateRandomSdbDescription()
+        String ownerRoleId = getRoleMap(iamAuthToken).owner
+        String iamPrincipalArn = "arn:aws:iam::$accountId:role/$roleName"
+        def iamPrincipalPermissions = [
+                ["iam_principal_arn": iamPrincipalArn, "role_id": ownerRoleId],
+                ["iam_principal_arn": "arn:aws:iam::1111111111:role/fake-api-test-role", "role_id": ownerRoleId],
+        ]
+
+        // create test sdb
+        def testSdb = createSdbV2(iamAuthToken, TestUtils.generateRandomSdbName(), sdbDescription, sdbCategoryId, iamPrincipalArn, [], iamPrincipalPermissions)
+        // delete test sdb
+        String testSdbId = testSdb.getString("id")
+        deleteSdb(iamAuthToken, testSdbId, V2_SAFE_DEPOSIT_BOX_PATH)
     }
 }

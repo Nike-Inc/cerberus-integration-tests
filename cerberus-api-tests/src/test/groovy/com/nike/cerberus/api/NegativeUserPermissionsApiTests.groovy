@@ -193,4 +193,24 @@ class NegativeUserPermissionsApiTests {
 
         validateDELETEApiResponse(userAuthToken, deleteSdbRequestUri, HttpStatus.SC_FORBIDDEN, PERMISSION_DENIED_JSON_SCHEMA)
     }
+
+    @Test
+    void "test that a user cannot call refresh more than the allotted number of times"() {
+        def userTokenObject = retrieveUserAuthToken(username, password, otpSecret, otpDeviceId)
+        String userClientToken = userTokenObject.client_token
+
+        String allowedRefreshesStr = userTokenObject.metadata.max_refresh_count
+        int allowedRefreshes = Integer.parseInt(allowedRefreshesStr)
+        // exhaust refresh limit
+        for (int i = 0; i < allowedRefreshes; i++) {
+            userTokenObject = refreshUserAuthToken(userClientToken).data.client_token
+            userClientToken = userTokenObject.client_token
+        }
+
+        String schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/user-exceeded-limit-of-auth-token-refresh.json"
+        // refresh user token
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, userClientToken, USER_TOKEN_REFRESH_PATH, HttpStatus.SC_FORBIDDEN, schemaFilePath)
+        // logout user
+        logoutUser(userClientToken)
+    }
 }
