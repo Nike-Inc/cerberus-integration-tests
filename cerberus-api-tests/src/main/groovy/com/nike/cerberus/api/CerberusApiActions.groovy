@@ -31,6 +31,7 @@ class CerberusApiActions {
     public static String IAM_ROLE_AUTH_PATH = "/v1/auth/iam-role"
     public static String IAM_PRINCIPAL_AUTH_PATH = "/v2/auth/iam-principal"
     public static String USER_AUTH_PATH = "v2/auth/user"
+    public static String USER_TOKEN_REFRESH_PATH = "v2/auth/user/refresh"
     public static String AUTH_TOKEN_HEADER_NAME = "X-Vault-Token"
     public static String USER_CREDENTIALS_HEADER_NAME = "Authorization"
 
@@ -424,6 +425,17 @@ class CerberusApiActions {
                 .put(CLEAN_UP_PATH)
         .then()
                 .statusCode(204)  // no-content
+    }
+
+    static refreshUserAuthToken(String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get(USER_TOKEN_REFRESH_PATH)
+        .then()
+                .statusCode(200)
+        .extract().
+                body().jsonPath()
     }
 
     static void validateGETApiResponse(String headerName, String headerValue, String requestPath, int statusCode, String pathToJsonSchemaFile) {
