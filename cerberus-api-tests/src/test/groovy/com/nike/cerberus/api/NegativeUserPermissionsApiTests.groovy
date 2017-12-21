@@ -9,6 +9,7 @@ import org.apache.http.HttpStatus
 import org.testng.annotations.AfterTest
 import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
+import org.testng.collections.Maps
 
 import static com.nike.cerberus.api.CerberusCompositeApiActions.*
 import static com.nike.cerberus.api.CerberusApiActions.*
@@ -212,5 +213,19 @@ class NegativeUserPermissionsApiTests {
         validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, userClientToken, USER_TOKEN_REFRESH_PATH, HttpStatus.SC_FORBIDDEN, schemaFilePath)
         // logout user
         logoutUser(userClientToken)
+    }
+
+    @Test
+    void "test that a non-admin user cannot call PUT v1/metadata endpoint"() {
+        String schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/access-to-requested-resource-is-denied.json"
+        // call PUT metadata
+        validatePUTApiResponse(userAuthToken, "v1/metadata", HttpStatus.SC_FORBIDDEN, schemaFilePath, Maps.newHashMap())
+    }
+
+    @Test
+    void "test that a non-admin user cannot call GET v1/metadata endpoint"() {
+        String schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/access-to-requested-resource-is-denied.json"
+        // call PUT metadata
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, userAuthToken, "v1/metadata", HttpStatus.SC_FORBIDDEN, schemaFilePath)
     }
 }
