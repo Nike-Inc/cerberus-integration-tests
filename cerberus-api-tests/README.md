@@ -96,24 +96,22 @@ You can run this only these tests with the following command
     TEST_USER_OTP_DEVICE_ID=111111 \
     gradlew clean -Dtest.single=CerberusUserApiTests cerberus-api-tests:test
 
-### Clean Up API Tests
+### Admin API Tests
 
-This is a series of tests that validate that the cleanup API call completes successfully and returns the correct response code
+This is a series of tests that validate that an admin can call admin-specific endpoints
 
-Warning: This test will clean up orphaned and inactive IAM and KMS records on the environments database
+Note: These tests are disabled by default and need to be enabled and triggered manually
 
 The following environment variables are required to run this test
 
-Environment Variable     | Description
-TEST_IAM_PRINCIPAL_ARN   | An IAM principal ARN that has admin permissions in the Cerberus Management Service (via CMS property `cms.admin.roles`)
-TEST_REGION              | The region to use when authenticating with Cerberus using the IAM Auth endpoint
+Environment Variable        | Description
+TEST_ADMIN_CERBERUS_TOKEN   | A Cerberus auth token with permissions to call admin endpoints
 
 You can run this only these tests with the following command
 
     CERBERUS_API_URL=http://127.0.0.1:9000 \
-    TEST_IAM_PRINCIPAL_ARN=arn:aws:iam::000000000000:role/admin-role-name \
-    TEST_REGION=us-west-2 \
-    gradlew clean -Dtest.single=CerberusCleanUpApiTests cerberus-api-tests:test
+    TEST_ADMIN_CERBERUS_TOKEN=0000-0000-0000-0000
+    gradlew clean -Dtest.single=AdminApiTests cerberus-api-tests:test
 
 ### Invalid Auth API Tests
 

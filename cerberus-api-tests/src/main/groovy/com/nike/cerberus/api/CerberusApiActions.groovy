@@ -8,12 +8,19 @@ import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.services.kms.model.DecryptResult
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
+import com.google.common.collect.Sets
 import groovy.json.JsonSlurper
 import io.restassured.path.json.JsonPath
 import io.restassured.response.Response
+import org.apache.http.HttpStatus
+import org.hamcrest.core.StringEndsWith
+import org.hamcrest.core.StringStartsWith
+import org.hamcrest.text.StringContainsInOrder
 
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 import static io.restassured.RestAssured.*
 import static io.restassured.module.jsv.JsonSchemaValidator.*
@@ -32,6 +39,7 @@ class CerberusApiActions {
     public static String IAM_PRINCIPAL_AUTH_PATH = "/v2/auth/iam-principal"
     public static String USER_AUTH_PATH = "v2/auth/user"
     public static String USER_TOKEN_REFRESH_PATH = "v2/auth/user/refresh"
+    public static String SDB_METADATA_PATH = "v1/metadata"
     public static String AUTH_TOKEN_HEADER_NAME = "X-Vault-Token"
     public static String USER_CREDENTIALS_HEADER_NAME = "Authorization"
 
@@ -424,7 +432,32 @@ class CerberusApiActions {
         .when()
                 .put(CLEAN_UP_PATH)
         .then()
-                .statusCode(204)  // no-content
+                .statusCode(HttpStatus.SC_NO_CONTENT)
+    }
+
+    static void getSdbMetadata(String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get(SDB_METADATA_PATH)
+        .then()
+                .statusCode(HttpStatus.SC_OK)
+    }
+
+    static void loadDashboardIndexHtml(String partialUriPath) {
+        given().when()
+            .get(partialUriPath)
+        .then()
+            .statusCode(HttpStatus.SC_OK)
+            .body(stringContainsInOrder(["<html>", "Cerberus", "</html>"]))
+    }
+
+    static void loadDashboardVersion() {
+        given().when()
+            .get("/dashboard/version")
+        .then()
+            .statusCode(HttpStatus.SC_OK)
+            .assertThat().body(matchesJsonSchemaInClasspath("json-schema/dashboard_version_success.json"))
     }
 
     static refreshUserAuthToken(String cerberusAuthToken) {
