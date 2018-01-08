@@ -9,6 +9,7 @@ import org.apache.http.HttpStatus
 import org.testng.annotations.AfterTest
 import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
+import org.testng.collections.Maps
 
 import static com.nike.cerberus.api.CerberusApiActions.*
 import static com.nike.cerberus.api.CerberusCompositeApiActions.getNEGATIVE_JSON_SCHEMA_ROOT_PATH
@@ -204,6 +205,20 @@ class NegativeIamPermissionsApiTests {
                 "v2/auth/user/refresh",
                 HttpStatus.SC_FORBIDDEN,
                 "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/requested-resource-for-user-principals-only.json")
+    }
+
+    @Test
+    void "test that a non-admin IAM principal cannot call PUT v1/metadata endpoint"() {
+        String schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/access-to-requested-resource-is-denied.json"
+        // call PUT metadata
+        validatePUTApiResponse(iamAuthToken, "v1/metadata", HttpStatus.SC_FORBIDDEN, schemaFilePath, Maps.newHashMap())
+    }
+
+    @Test
+    void "test that a non-admin IAM principal cannot call GET v1/metadata endpoint"() {
+        String schemaFilePath = "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/access-to-requested-resource-is-denied.json"
+        // call PUT metadata
+        validateGETApiResponse(AUTH_TOKEN_HEADER_NAME, iamAuthToken, "v1/metadata", HttpStatus.SC_FORBIDDEN, schemaFilePath)
     }
 
     private static Map getRoleMap(String cerberusAuthToken) {
