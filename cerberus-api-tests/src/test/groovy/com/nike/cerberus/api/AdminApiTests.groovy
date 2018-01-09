@@ -18,7 +18,7 @@ class AdminApiTests {
 
     private String cerberusAuthToken
 
-    @BeforeTest
+    @BeforeTest(enabled = false)
     void beforeTest() throws NoSuchAlgorithmException {
         TestUtils.configureRestAssured()
         loadRequiredEnvVars()
