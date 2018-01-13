@@ -31,7 +31,7 @@ class AdminApiTests {
 
     @Test(enabled = false)
     void "test that an admin can call the v1/cleanup endpoint"() {
-        int deleteKmsKeysAfterNDaysOfInactivity = 1  // do not actually delete any keys in this test
+        int deleteKmsKeysAfterNDaysOfInactivity = Integer.MAX_VALUE-1  // try not to actually delete any keys in this test
         cleanUpOrphanedAndInactiveRecords(cerberusAuthToken, deleteKmsKeysAfterNDaysOfInactivity)
     }
 
