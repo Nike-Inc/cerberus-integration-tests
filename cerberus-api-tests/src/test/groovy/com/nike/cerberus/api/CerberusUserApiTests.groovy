@@ -60,6 +60,11 @@ class CerberusUserApiTests {
         "create, read, update then delete a secret node"(cerberusAuthToken)
     }
 
+    @Test
+    void "test that an authenticated user can read a pre-existing secret"() {
+        readSecretNode(PRE_EXISTING_TEST_SECRET_PATH, cerberusAuthToken)
+    }
+
     private void loadRequiredEnvVars() {
         username = PropUtils.getRequiredProperty("TEST_USER_EMAIL",
                 "The email address for a test user for testing user based endpoints")

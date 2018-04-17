@@ -61,4 +61,9 @@ class CerberusIamApiTests {
     void "test that an authenticated IAM role can create, read, update then delete a safe deposit box v2"() {
         "v2 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }
+
+    @Test
+    void "test that an authenticated IAM role can read a pre-existing secret"() {
+        readSecretNode(PRE_EXISTING_TEST_SECRET_PATH, cerberusAuthToken)
+    }
 }
