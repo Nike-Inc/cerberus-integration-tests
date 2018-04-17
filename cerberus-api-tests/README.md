@@ -24,11 +24,21 @@ User Group                      | Role
 ------------------------------- | -------
 some-group-your-auto-user-is-in | write
 
+
 IAM Role Permissions
 
-Acct ID | Role Name           | Role
-------- | ------------------- | -----
-1111111 | cerberus-api-tester | write
+IAM Principal ARN                              | Role
+---------------------------------------------- | -----
+arn:aws:iam::1111111:role/cerberus-api-tester  | write
+
+
+Secure Data (add the following Secure Data, after the SDB is created)
+
+Field       | Value
+----------- | -----------------------------------------------------------------
+Path        | default-test-secret
+Key         | default-test-key
+Value       | default-test-value
 
 This sub module contains API tests that can validate the composed Cerberus API
 
