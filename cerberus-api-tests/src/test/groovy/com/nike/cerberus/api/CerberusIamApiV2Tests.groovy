@@ -54,6 +54,11 @@ class CerberusIamApiV2Tests {
     }
 
     @Test
+    void "test that an authenticated IAM role can create, read, update, then delete a file"() {
+        "create, read, update then delete a file"(cerberusAuthToken)
+    }
+
+    @Test
     void "test that an authenticated IAM role can create, read, update then delete a safe deposit box v1"() {
         "v1 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }
