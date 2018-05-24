@@ -192,6 +192,32 @@ class CerberusApiActions {
                 .body().jsonPath()
     }
 
+    static JsonPath getSecretNodeVersionsMetadata(String path, String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/secret-versions/${path}")
+        .then()
+                .statusCode(200)
+                .contentType("application/json")
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/secret/get-secret-versions-metadata.json"))
+        .extract()
+                .body().jsonPath()
+    }
+
+    static JsonPath readSecretNodeVersion(String path, String versionId, String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/secret/${path}?versionId=${versionId}")
+        .then()
+                .statusCode(200)
+                .contentType("application/json")
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/secret/get-secret-version.json"))
+        .extract()
+                .body().jsonPath()
+    }
+
     static void deleteSecretNode(String path, String cerberusAuthToken) {
         given()
                 .header("X-Vault-Token", cerberusAuthToken)
