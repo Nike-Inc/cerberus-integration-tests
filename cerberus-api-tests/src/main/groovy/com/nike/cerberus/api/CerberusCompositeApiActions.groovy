@@ -1,5 +1,6 @@
 package com.nike.cerberus.api
 
+import com.amazonaws.util.IOUtils
 import com.fieldju.commons.PropUtils
 import com.thedeanda.lorem.Lorem
 import io.restassured.path.json.JsonPath
@@ -37,6 +38,31 @@ class CerberusCompositeApiActions {
         deleteSecretNode(path, cerberusAuthToken)
         // Verify that the node was deleted
         assertThatSecretNodeDoesNotExist(path, cerberusAuthToken)
+    }
+
+    static void "create, read, update then delete a file"(String cerberusAuthToken) {
+        InputStream originalFile = Thread.currentThread().getContextClassLoader().getResourceAsStream("example-file.pem")
+        byte[] originalFileBytes = IOUtils.toByteArray(originalFile);
+
+        InputStream updatedFile = Thread.currentThread().getContextClassLoader().getResourceAsStream("updated-file.pem")
+        byte[] updatedFileBytes = IOUtils.toByteArray(updatedFile);
+        def path = "${ROOT_INTEGRATION_TEST_SDB_PATH}/${UUID.randomUUID().toString().substring(0, 8) + ".pem"}"
+
+        // Create the initial secret node
+        createOrUpdateFile(originalFileBytes, path, cerberusAuthToken)
+        // Read and verify that it was created
+        readSecureFile(path, cerberusAuthToken, originalFileBytes)
+        // Update the secret node
+        createOrUpdateFile(updatedFileBytes, path, cerberusAuthToken)
+        // Read that the node was updated
+        readSecureFile(path, cerberusAuthToken, updatedFileBytes)
+        // Delete the node
+        deleteSecureFile(path, cerberusAuthToken)
+        // Verify that the node was deleted
+        assertThatSecureFileDoesNotExist(path, cerberusAuthToken)
+
+        originalFile.close()
+        updatedFile.close()
     }
 
     static void "v1 create, read, list, update and then delete a safe deposit box"(Map cerberusAuthPayloadData) {

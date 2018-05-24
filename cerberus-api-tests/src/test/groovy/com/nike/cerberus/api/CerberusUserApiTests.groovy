@@ -61,6 +61,11 @@ class CerberusUserApiTests {
     }
 
     @Test
+    void "test that an authenticated user can create, read, update, then delete a file"() {
+        "create, read, update then delete a file"(cerberusAuthToken)
+    }
+
+    @Test
     void "test that an authenticated user can read a pre-existing secret"() {
         readSecretNode(PRE_EXISTING_TEST_SECRET_PATH, cerberusAuthToken)
     }
