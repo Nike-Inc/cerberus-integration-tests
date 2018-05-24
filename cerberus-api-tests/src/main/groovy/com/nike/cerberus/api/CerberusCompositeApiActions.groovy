@@ -10,6 +10,7 @@ import org.jboss.aerogear.security.otp.Totp
 import static org.junit.Assert.assertEquals
 import static com.nike.cerberus.api.CerberusApiActions.*
 import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
 class CerberusCompositeApiActions {
@@ -34,23 +35,10 @@ class CerberusCompositeApiActions {
         // Read that the node was updated
         def resp2 = readSecretNode(path, cerberusAuthToken)
         assertEquals(value2, resp2?.'data'?.'value')
-
-        // Since the versions are sorted by timestamp, sleep is used to ensure correct order
-        sleep(1000)
         // Delete the node
         deleteSecretNode(path, cerberusAuthToken)
         // Verify that the node was deleted
         assertThatSecretNodeDoesNotExist(path, cerberusAuthToken)
-        def resp3 = getSecretNodeVersionsMetadata(path, cerberusAuthToken)
-        assertEquals(resp3?.'total_version_count', 2)
-        // Read the oldest version
-        def versionId1 = resp3?.'secure_data_version_summaries'[1]?.'id'
-        def resp4 = readSecretNodeVersion(path, versionId1, cerberusAuthToken)
-        assertEquals(value1, resp4?.'data'?.'value')
-        // Read the second oldest version
-        def versionId2 = resp3?.'secure_data_version_summaries'[0]?.'id'
-        def resp5 = readSecretNodeVersion(path, versionId2, cerberusAuthToken)
-        assertEquals(value2, resp5?.'data'?.'value')
     }
 
     static void "create, read, update then delete a file"(String cerberusAuthToken) {
@@ -76,6 +64,55 @@ class CerberusCompositeApiActions {
 
         originalFile.close()
         updatedFile.close()
+    }
+
+    static void "read secret node versions"(String cerberusAuthToken) {
+        def path = "${ROOT_INTEGRATION_TEST_SDB_PATH}/${UUID.randomUUID().toString()}"
+        String value1 = 'value1'
+        String value2 = 'value2'
+
+        // Create the initial secret node
+        createOrUpdateSecretNode([value: value1], path, cerberusAuthToken)
+        // Update the secret node
+        createOrUpdateSecretNode([value: value2], path, cerberusAuthToken)
+
+        // The versions are sorted by timestamp. Automated test executes very quickly, causing the 'update' and
+        // 'delete' timestamp to be the same which causes an issue with sorting. Sleep is used to ensure correct order.
+        sleep(1000)
+        // Delete the node
+        deleteSecretNode(path, cerberusAuthToken)
+        // Verify that the node was deleted
+        assertThatSecretNodeDoesNotExist(path, cerberusAuthToken)
+
+        def metadataResp = getSecretNodeVersionsMetadata(path, cerberusAuthToken)
+        assertEquals(metadataResp?.'total_version_count', 2)
+        // Read the oldest version
+        def versionId1 = metadataResp?.'secure_data_version_summaries'[1]?.'id'
+        def secretResp1 = readSecretNodeVersion(path, versionId1, cerberusAuthToken)
+        assertEquals(value1, secretResp1?.'data'?.'value')
+        // Read the second oldest version
+        def versionId2 = metadataResp?.'secure_data_version_summaries'[0]?.'id'
+        def secretResp2 = readSecretNodeVersion(path, versionId2, cerberusAuthToken)
+        assertEquals(value2, secretResp2?.'data'?.'value')
+        // Get SDB ID
+        def sdbList = listSdbs(cerberusAuthToken).get()
+        def sdbId
+        for(sdb in sdbList){
+            def sdbPath = sdb.get('path')
+            // When the SDB path contains trailing slash
+            if(sdbPath.endsWith('/')){
+                sdbPath = sdbPath.take(sdbPath.length() - 1)
+            }
+            if(ROOT_INTEGRATION_TEST_SDB_PATH == sdbPath) {
+                sdbId = sdb.get('id')
+                break
+            }
+        }
+        assertNotNull(sdbId)
+        // Verify that this secret node is in the list of changed secret nodes
+        def sdbVersions = getSdbVersionPaths(sdbId, cerberusAuthToken)
+        def list = sdbVersions.get()
+        assertTrue(list.contains(path.toString()))
     }
 
     static void "v1 create, read, list, update and then delete a safe deposit box"(Map cerberusAuthPayloadData) {
