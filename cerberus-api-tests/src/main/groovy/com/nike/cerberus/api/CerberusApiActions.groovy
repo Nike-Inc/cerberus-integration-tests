@@ -6,21 +6,18 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.kms.AWSKMSClient
 import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.services.kms.model.DecryptResult
+import com.amazonaws.util.IOUtils
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
-import com.google.common.collect.Sets
 import groovy.json.JsonSlurper
+import io.restassured.http.ContentType
 import io.restassured.path.json.JsonPath
 import io.restassured.response.Response
+import org.apache.commons.lang3.StringUtils
 import org.apache.http.HttpStatus
-import org.hamcrest.core.StringEndsWith
-import org.hamcrest.core.StringStartsWith
-import org.hamcrest.text.StringContainsInOrder
 
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 import static io.restassured.RestAssured.*
 import static io.restassured.module.jsv.JsonSchemaValidator.*
@@ -175,8 +172,15 @@ class CerberusApiActions {
                 .statusCode(204)
     }
 
-    static void writeSecretData(Map data, String path, String cerberusAuthToken) {
-        createOrUpdateSecretNode(data, path, cerberusAuthToken)
+    static void createOrUpdateFile(byte[] file, String path, String cerberusAuthToken) {
+        String filename = StringUtils.substringAfterLast(path, "/")
+        given()
+                .header("X-Cerberus-Token", cerberusAuthToken)
+                .multiPart('file-content', filename, file)
+        .when()
+                .post("/v1/secure-file/${path}")
+        .then()
+                .statusCode(204)
     }
 
     static JsonPath readSecretNode(String path, String cerberusAuthToken) {
@@ -190,6 +194,18 @@ class CerberusApiActions {
                 .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/secret/get-secret.json"))
         .extract()
                 .body().jsonPath()
+    }
+
+    static byte[] readSecureFile(String path, String cerberusAuthToken, byte[] expectedFileBytes) {
+        given()
+                .header("X-Cerberus-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/secure-file/${path}")
+        .then()
+                .statusCode(200)
+                .assertThat().body(equalTo(new String(expectedFileBytes)))
+        .extract()
+                .body().asByteArray()
     }
 
     static JsonPath getSecretNodeVersionsMetadata(String path, String cerberusAuthToken) {
@@ -227,12 +243,30 @@ class CerberusApiActions {
                 .statusCode(204)
     }
 
+    static void deleteSecureFile(String path, String cerberusAuthToken) {
+        given()
+                .header("X-Cerberus-Token", cerberusAuthToken)
+        .when()
+                .delete("/v1/secure-file/${path}")
+        .then()
+                .statusCode(204)
+    }
+
     static void assertThatSecretNodeDoesNotExist(String path, String cerberusAuthToken) {
         given()
                 .header("X-Vault-Token", cerberusAuthToken)
         .when()
                 .get("/v1/secret/${path}")
         .then()
+                .statusCode(404)
+    }
+
+    static void assertThatSecureFileDoesNotExist(String path, String cerberusAuthToken) {
+        given()
+                .header("X-Cerberus-Token", cerberusAuthToken)
+                .when()
+                .get("/v1/secure-file/${path}")
+                .then()
                 .statusCode(404)
     }
 

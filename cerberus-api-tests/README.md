@@ -57,10 +57,10 @@ TEST_REGION          | The region to use when authenticating with Cerberus using
 
 You can run this only these tests with the following command
 
-    CERBERUS_API_URL=http://127.0.0.1:9000 \
-    TEST_ACCOUNT_ID=11111111 \
-    TEST_ROLE_NAME=cerberus-api-tester \
-    TEST_REGION=us-west-2 \
+CERBERUS_API_URL=http://127.0.0.1:9000
+TEST_ACCOUNT_ID=933764306573
+TEST_ROLE_NAME=cerberus-api-tester
+TEST_REGION=us-west-2
     gradlew clean -Dtest.single=CerberusIamApiTests cerberus-api-tests:test
 
 ### IAM Principal API V2 Tests
