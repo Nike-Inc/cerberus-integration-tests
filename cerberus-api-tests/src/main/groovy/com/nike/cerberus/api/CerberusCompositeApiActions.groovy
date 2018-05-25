@@ -94,7 +94,6 @@ class CerberusCompositeApiActions {
         def versionId2 = metadataResp?.'secure_data_version_summaries'[0]?.'id'
         def secretResp2 = readSecretNodeVersion(path, versionId2, cerberusAuthToken)
         assertEquals(value2, secretResp2?.'data'?.'value')
-        // Get SDB ID
         def sdbId = getSdbIdByPath(ROOT_INTEGRATION_TEST_SDB_PATH, cerberusAuthToken)
         assertNotNull(sdbId)
         // Verify that this secret node is in the list of changed secret nodes
