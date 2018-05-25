@@ -58,6 +58,11 @@ class CerberusIamApiTests {
     }
 
     @Test
+    void "test that an authenticated IAM role can read secret node versions"() {
+        'read secret node versions'(cerberusAuthToken)
+    }
+
+    @Test
     void "test that an authenticated IAM role can create, read, update then delete a safe deposit box v1"() {
         "v1 create, read, list, update and then delete a safe deposit box"(cerberusAuthData)
     }

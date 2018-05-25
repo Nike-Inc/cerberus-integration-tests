@@ -39,6 +39,7 @@ class CerberusApiActions {
     public static String SDB_METADATA_PATH = "v1/metadata"
     public static String AUTH_TOKEN_HEADER_NAME = "X-Vault-Token"
     public static String USER_CREDENTIALS_HEADER_NAME = "Authorization"
+    public static String SAFE_DEPOSIT_BOX_VERSION_PATHS_PATH = "v1/sdb-secret-version-paths"
 
     /**
      * Use a cache of KMS clients because creating too many kmsCLients causes a performance bottleneck
@@ -206,6 +207,44 @@ class CerberusApiActions {
                 .assertThat().body(equalTo(new String(expectedFileBytes)))
         .extract()
                 .body().asByteArray()
+    }
+
+    static JsonPath getSecretNodeVersionsMetadata(String path, String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/secret-versions/${path}")
+        .then()
+                .statusCode(200)
+                .contentType("application/json")
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/secret/get-secret-versions-metadata.json"))
+        .extract()
+                .body().jsonPath()
+    }
+
+    static JsonPath getSdbVersionPaths(String sdbId, String cerberusAuthToken, String baseSdbVersionPathsPath = SAFE_DEPOSIT_BOX_VERSION_PATHS_PATH) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("${baseSdbVersionPathsPath}/${sdbId}")
+        .then()
+                .statusCode(200)
+                .contentType("application/json")
+        .extract()
+                .body().jsonPath()
+    }
+
+    static JsonPath readSecretNodeVersion(String path, String versionId, String cerberusAuthToken) {
+        given()
+                .header("X-Vault-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/secret/${path}?versionId=${versionId}")
+        .then()
+                .statusCode(200)
+                .contentType("application/json")
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/secret/get-secret-version.json"))
+        .extract()
+                .body().jsonPath()
     }
 
     static void deleteSecretNode(String path, String cerberusAuthToken) {
@@ -455,6 +494,21 @@ class CerberusApiActions {
                 .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/safe-deposit-box/list_success.json"))
         .extract().
                 body().jsonPath()
+    }
+    
+    static String getSdbIdByPath(String pathToSearch, String cerberusAuthToken) {
+        def sdbList = listSdbs(cerberusAuthToken).get()
+        for(sdb in sdbList){
+            def path = sdb.get('path')
+            // When the SDB path contains trailing slash
+            if(path.endsWith('/')){
+                path = path.take(path.length() - 1)
+            }
+            if(pathToSearch == path) {
+                return sdb.get('id')
+            }
+        }
+        return null
     }
 
     static void cleanUpOrphanedAndInactiveRecords(String cerberusAuthToken, Integer expirationPeriodInDays = null) {
