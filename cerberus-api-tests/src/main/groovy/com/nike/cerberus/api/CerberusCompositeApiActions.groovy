@@ -95,19 +95,7 @@ class CerberusCompositeApiActions {
         def secretResp2 = readSecretNodeVersion(path, versionId2, cerberusAuthToken)
         assertEquals(value2, secretResp2?.'data'?.'value')
         // Get SDB ID
-        def sdbList = listSdbs(cerberusAuthToken).get()
-        def sdbId
-        for(sdb in sdbList){
-            def sdbPath = sdb.get('path')
-            // When the SDB path contains trailing slash
-            if(sdbPath.endsWith('/')){
-                sdbPath = sdbPath.take(sdbPath.length() - 1)
-            }
-            if(ROOT_INTEGRATION_TEST_SDB_PATH == sdbPath) {
-                sdbId = sdb.get('id')
-                break
-            }
-        }
+        def sdbId = getSdbIdByPath(ROOT_INTEGRATION_TEST_SDB_PATH, cerberusAuthToken)
         assertNotNull(sdbId)
         // Verify that this secret node is in the list of changed secret nodes
         def sdbVersions = getSdbVersionPaths(sdbId, cerberusAuthToken)

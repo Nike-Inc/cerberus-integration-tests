@@ -495,6 +495,21 @@ class CerberusApiActions {
         .extract().
                 body().jsonPath()
     }
+    
+    static String getSdbIdByPath(String pathToSearch, String cerberusAuthToken) {
+        def sdbList = listSdbs(cerberusAuthToken).get()
+        for(sdb in sdbList){
+            def path = sdb.get('path')
+            // When the SDB path contains trailing slash
+            if(path.endsWith('/')){
+                path = path.take(path.length() - 1)
+            }
+            if(pathToSearch == path) {
+                return sdb.get('id')
+            }
+        }
+        return null
+    }
 
     static void cleanUpOrphanedAndInactiveRecords(String cerberusAuthToken, Integer expirationPeriodInDays = null) {
         given()
