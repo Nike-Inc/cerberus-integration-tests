@@ -197,16 +197,29 @@ class CerberusApiActions {
                 .body().jsonPath()
     }
 
-    static byte[] readSecureFile(String path, String cerberusAuthToken, byte[] expectedFileBytes) {
+    static byte[] readSecureFile(String path, String cerberusAuthToken, byte[] expectedFileBytes, String versionId=null) {
+        String uri = versionId ? "/v1/secure-file/${path}?versionId=${versionId}" : "/v1/secure-file/${path}"
         given()
                 .header("X-Cerberus-Token", cerberusAuthToken)
         .when()
-                .get("/v1/secure-file/${path}")
+                .get(uri)
         .then()
                 .statusCode(200)
                 .assertThat().body(equalTo(new String(expectedFileBytes)))
         .extract()
                 .body().asByteArray()
+    }
+
+    static JsonPath listSecureFileSummaries(String path, String cerberusAuthToken) {
+        given()
+                .header("X-Cerberus-Token", cerberusAuthToken)
+        .when()
+                .get("/v1/secure-files/${path}")
+        .then()
+                .statusCode(200)
+                .assertThat().body(matchesJsonSchemaInClasspath("json-schema/v1/secure-file/list-summaries.json"))
+        .extract()
+                .body().jsonPath()
     }
 
     static JsonPath getSecretNodeVersionsMetadata(String path, String cerberusAuthToken) {
