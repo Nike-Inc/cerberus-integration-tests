@@ -57,6 +57,14 @@ class CerberusCompositeApiActions {
         createOrUpdateFile(updatedFileBytes, path, cerberusAuthToken)
         // Read that the node was updated
         readSecureFile(path, cerberusAuthToken, updatedFileBytes)
+        // List files in SDB
+        listSecureFileSummaries("${ROOT_INTEGRATION_TEST_SDB_PATH}/", cerberusAuthToken)
+        // List file versions
+        def fileVersionsResponse = getSecretNodeVersionsMetadata(path, cerberusAuthToken)
+        assertEquals(fileVersionsResponse?.'total_version_count', 2)
+        // Read original file using version ID
+        def originalFileVersionId = fileVersionsResponse?.secure_data_version_summaries[1]?.'id'
+        readSecureFile(path, cerberusAuthToken, originalFileBytes, originalFileVersionId)
         // Delete the node
         deleteSecureFile(path, cerberusAuthToken)
         // Verify that the node was deleted
