@@ -76,9 +76,6 @@ class CerberusCompositeApiActions {
         // Update the secret node
         createOrUpdateSecretNode([value: value2], path, cerberusAuthToken)
 
-        // The versions are sorted by timestamp. Automated test executes very quickly, causing the 'update' and
-        // 'delete' timestamp to be the same which causes an issue with sorting. Sleep is used to ensure correct order.
-        sleep(1000)
         // Delete the node
         deleteSecretNode(path, cerberusAuthToken)
         // Verify that the node was deleted
