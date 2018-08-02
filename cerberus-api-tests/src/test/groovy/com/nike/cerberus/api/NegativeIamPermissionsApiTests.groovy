@@ -225,7 +225,7 @@ class NegativeIamPermissionsApiTests {
     }
 
     @Test
-    void "test that IAM Root ARN permissions does not grant access to an IAM principal from a different account"() {
+    void "test that IAM Root ARN permissions do not grant access to an IAM principal from a different account"() {
         String sdbCategoryId = getCategoryMap(iamAuthToken).Applications
         String sdbDescription = generateRandomSdbDescription()
         String ownerRoleId = getRoleMap(iamAuthToken).owner
@@ -256,6 +256,45 @@ class NegativeIamPermissionsApiTests {
         // delete test sdb
         String testSdbId = testSdb.getString("id")
         deleteSdb(userAuthToken, testSdbId, V2_SAFE_DEPOSIT_BOX_PATH)
+    }
+
+    @Test
+    void "test that IAM Root ARN permissions do not grant access to a IAM principal with permissions to a different SDB"() {
+        String sdbCategoryId = getCategoryMap(iamAuthToken).Applications
+        String sdbDescription = generateRandomSdbDescription()
+        String ownerRoleId = getRoleMap(iamAuthToken).owner
+        String accountRootWithNoAccess = "arn:aws:iam::00000000:root"
+        String accountRootWithAccess = "arn:aws:iam::$accountId:root"
+        String automationUserGroup = userGroups[0]
+        def userPerms = []
+        def iamPermsWithNoAccess = [
+                ["iam_principal_arn": accountRootWithNoAccess, "role_id": ownerRoleId],
+        ]
+        def iamPermsWithAccess = [
+                ["iam_principal_arn": accountRootWithAccess, "role_id": ownerRoleId],
+        ]
+
+        // create test sdb
+        def sdbWithNoAccess = createSdbV2(iamAuthToken, TestUtils.generateRandomSdbName(), sdbDescription, sdbCategoryId, automationUserGroup, userPerms, iamPermsWithNoAccess)
+        def sdbWithAccess = createSdbV2(iamAuthToken, TestUtils.generateRandomSdbName(), sdbDescription, sdbCategoryId, automationUserGroup, userPerms, iamPermsWithAccess)
+
+        // create test secret to read
+        def secret = ["foo": "bar"]
+        def sdbPathWithNoAccess = sdbWithNoAccess.getString("path")
+        def secretPathWithNoAccess = "${sdbPathWithNoAccess}${RandomStringUtils.randomAlphabetic(5,10)}"
+        createOrUpdateSecretNode(secret, secretPathWithNoAccess, userAuthToken)
+
+        // test that principal cannot read from sdb without access
+        validateGETApiResponse(
+                AUTH_TOKEN_HEADER_NAME,
+                iamAuthToken,
+                "v1/secret/${secretPathWithNoAccess}",
+                HttpStatus.SC_FORBIDDEN,
+                "$NEGATIVE_JSON_SCHEMA_ROOT_PATH/permission-denied-invalid-auth-token-error.json")
+
+        // delete test sdbs
+        deleteSdb(userAuthToken, sdbWithNoAccess.getString("id"), V2_SAFE_DEPOSIT_BOX_PATH)
+        deleteSdb(iamAuthToken, sdbWithAccess.getString("id"), V2_SAFE_DEPOSIT_BOX_PATH)
     }
 
     private static Map getRoleMap(String cerberusAuthToken) {
