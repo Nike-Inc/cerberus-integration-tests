@@ -21,7 +21,11 @@ class CerberusCompositeApiActions {
     static final String NEGATIVE_JSON_SCHEMA_ROOT_PATH = "json-schema/negative"
 
     static void "create, read, update then delete a secret node"(String cerberusAuthToken) {
-        def path = "${ROOT_INTEGRATION_TEST_SDB_PATH}/${UUID.randomUUID().toString()}"
+        "create, read, update then delete a secret node"(cerberusAuthToken, ROOT_INTEGRATION_TEST_SDB_PATH)
+    }
+
+    static void "create, read, update then delete a secret node"(String cerberusAuthToken, String sdbPath) {
+        def path = "${sdbPath}/${UUID.randomUUID().toString()}"
         String value1 = 'value1'
         String value2 = 'value2'
 
@@ -42,12 +46,16 @@ class CerberusCompositeApiActions {
     }
 
     static void "create, read, update then delete a file"(String cerberusAuthToken) {
+        "create, read, update then delete a file"(cerberusAuthToken, ROOT_INTEGRATION_TEST_SDB_PATH)
+    }
+
+    static void "create, read, update then delete a file"(String cerberusAuthToken, String sdbPath) {
         InputStream originalFile = Thread.currentThread().getContextClassLoader().getResourceAsStream("example-file.pem")
         byte[] originalFileBytes = IOUtils.toByteArray(originalFile);
 
         InputStream updatedFile = Thread.currentThread().getContextClassLoader().getResourceAsStream("updated-file.pem")
         byte[] updatedFileBytes = IOUtils.toByteArray(updatedFile);
-        def path = "${ROOT_INTEGRATION_TEST_SDB_PATH}/${UUID.randomUUID().toString().substring(0, 8) + ".pem"}"
+        def path = "${sdbPath}/${UUID.randomUUID().toString().substring(0, 8) + ".pem"}"
 
         // Create the initial secret node
         createOrUpdateFile(originalFileBytes, path, cerberusAuthToken)

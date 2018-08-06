@@ -3,6 +3,8 @@ package com.nike.cerberus.api
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fieldju.commons.PropUtils
 import com.nike.cerberus.api.util.TestUtils
+import org.apache.commons.lang3.StringUtils
+import org.codehaus.groovy.util.StringUtil
 import org.testng.annotations.AfterTest
 import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
@@ -87,6 +89,52 @@ class CerberusIamApiV2Tests {
 
         // create test sdb
         def testSdb = createSdbV2(iamAuthToken, TestUtils.generateRandomSdbName(), sdbDescription, sdbCategoryId, iamPrincipalArn, [], iamPrincipalPermissions)
+        // delete test sdb
+        String testSdbId = testSdb.getString("id")
+        deleteSdb(iamAuthToken, testSdbId, V2_SAFE_DEPOSIT_BOX_PATH)
+    }
+
+    @Test
+    void "test that IAM Root ARN permissions grant access for an IAM principal from the same account to read, update, and delete secrets"() {
+        String iamAuthToken = cerberusAuthData.client_token
+        String sdbCategoryId = getCategoryMap(iamAuthToken).Applications
+        String sdbDescription = generateRandomSdbDescription()
+        String ownerRoleId = getRoleMap(iamAuthToken).owner
+        String accountRootArn = "arn:aws:iam::$accountId:root"
+        def userPerms = []
+        def iamPrincipalPermissions = [
+                ["iam_principal_arn": accountRootArn, "role_id": ownerRoleId],
+        ]
+
+        // create test sdb
+        def testSdb = createSdbV2(iamAuthToken, TestUtils.generateRandomSdbName(), sdbDescription, sdbCategoryId, "Lst-foo", userPerms, iamPrincipalPermissions)
+        def sdbPath = testSdb.getString("path")
+        sdbPath = StringUtils.removeEnd(sdbPath, "/")
+        "create, read, update then delete a secret node"(iamAuthToken, sdbPath)
+
+        // delete test sdb
+        String testSdbId = testSdb.getString("id")
+        deleteSdb(iamAuthToken, testSdbId, V2_SAFE_DEPOSIT_BOX_PATH)
+    }
+
+    @Test
+    void "test that IAM Root ARN permissions grant access for an IAM principal from the same account to read, update, and delete files"() {
+        String iamAuthToken = cerberusAuthData.client_token
+        String sdbCategoryId = getCategoryMap(iamAuthToken).Applications
+        String sdbDescription = generateRandomSdbDescription()
+        String ownerRoleId = getRoleMap(iamAuthToken).owner
+        String accountRootArn = "arn:aws:iam::$accountId:root"
+        def userPerms = []
+        def iamPrincipalPermissions = [
+                ["iam_principal_arn": accountRootArn, "role_id": ownerRoleId],
+        ]
+
+        // create test sdb
+        def testSdb = createSdbV2(iamAuthToken, TestUtils.generateRandomSdbName(), sdbDescription, sdbCategoryId, "Lst-foo", userPerms, iamPrincipalPermissions)
+        def sdbPath = testSdb.getString("path")
+        sdbPath = StringUtils.removeEnd(sdbPath, "/")
+        "create, read, update then delete a file"(iamAuthToken, sdbPath)
+
         // delete test sdb
         String testSdbId = testSdb.getString("id")
         deleteSdb(iamAuthToken, testSdbId, V2_SAFE_DEPOSIT_BOX_PATH)
