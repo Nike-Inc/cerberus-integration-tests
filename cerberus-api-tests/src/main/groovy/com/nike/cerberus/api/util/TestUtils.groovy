@@ -1,14 +1,10 @@
 package com.nike.cerberus.api.util
 
 import com.fieldju.commons.PropUtils
-import com.nike.cerberus.api.GatewaySslSocketFactory
 import com.thedeanda.lorem.Lorem
 import io.restassured.RestAssured
-import io.restassured.config.SSLConfig
 import org.apache.commons.lang3.RandomStringUtils
-import org.apache.http.conn.ssl.SSLSocketFactory
 
-import javax.net.ssl.SSLContext
 import java.security.NoSuchAlgorithmException
 
 import static io.restassured.RestAssured.*
