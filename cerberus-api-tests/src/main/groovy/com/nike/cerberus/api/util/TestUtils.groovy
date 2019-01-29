@@ -26,11 +26,9 @@ class TestUtils {
 
         enableLoggingOfRequestAndResponseIfValidationFails()
 
-        // Use our custom socket factory to enable SSL with SNI
-        SSLSocketFactory customSslFactory = new GatewaySslSocketFactory(
-                SSLContext.getDefault(), SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
-        config = config().sslConfig(
-                SSLConfig.sslConfig().sslSocketFactory(customSslFactory))
+        // allow us to ping instances directly and not go through the load balancer
+        useRelaxedHTTPSValidation()
+
         config.getHttpClientConfig().reuseHttpClientInstance()
 
         System.out.print("Performing sanity check get on /dashboard/index.html..")
