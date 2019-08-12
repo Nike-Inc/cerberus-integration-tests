@@ -28,6 +28,7 @@ E.g. in a Bash terminal
    export CERBERUS_API_URL="https://dev.cerberus-oss.io/"
    export CERBERUS_ACCOUNT_ID=1234567890
    export REGION="us-east-1"
+   export NUMBER_LOAD_SERVERS=1 # <- numbers of instances in cluster performing gatling tests
    
    # Set optional parameters
    export NUMBER_OF_SERVICES_FOR_SIMULATION=1
@@ -47,7 +48,7 @@ Use the following gradlew task to run the default simulation:
 
 To specify the simulation name:
 
-    ./gradlew cerberus-gatling-perf-tests:runSimulation -Psimulation=VaultDirectSimulation
+    ./gradlew cerberus-gatling-perf-tests:runSimulation -Psimulation=IamPrincipalAuthAndReadSimulation
     
 To determine your current account id and role use:
 
@@ -62,12 +63,6 @@ The following gradle task can create a fat jar containing the tests
 You can trigger the tests via 
 
     java -cp PATH/TO/JAR io.gatling.app.Gatling --simulation SIMULATION NAME -rf PATH/TO/SAVE/REPORT
-
-To run VaultDirectSimulation
-
-    export VAULT_ADDR="..."
-    export VAULT_TOKEN="..."
-    java -jar cerberus-gatling-perf-tests-gatling-all.jar io.gatling.app.Gatling --simulation com.nike.cerberus.VaultDirectSimulation -rf .
 
 Additional Gatling [configuration parameters](https://github.com/gatling/gatling/blob/master/gatling-core/src/main/resources/gatling-defaults.conf) are available, e.g.
 

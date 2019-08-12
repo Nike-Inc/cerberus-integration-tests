@@ -24,7 +24,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
-object VaultDataHelper {
+object DataHelper {
 
   def writeRandomData(token: String, basePath: String): List[String] = {
 
@@ -95,7 +95,7 @@ object VaultDataHelper {
           |################################################################################
         """.stripMargin
       )
-      CerberusApiActions.writeSecretData(data.asJava, path, token)
+      CerberusApiActions.createOrUpdateSecretNode(data.asJava, path, token)
       paths += path
     }
 

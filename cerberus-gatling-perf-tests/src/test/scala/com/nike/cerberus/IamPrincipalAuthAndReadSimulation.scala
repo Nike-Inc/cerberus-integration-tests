@@ -1,6 +1,22 @@
+/*
+ * Copyright (c) 2017 Nike Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.nike.cerberus
 
-import java.util.regex.{Matcher, Pattern}
+import java.util.regex.Pattern
 
 import com.amazonaws.AmazonClientException
 import com.amazonaws.auth.policy.Statement.Effect
@@ -13,20 +29,20 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient
 import com.amazonaws.services.securitytoken.model.GetCallerIdentityRequest
 import com.fieldju.commons.PropUtils._
 import com.fieldju.commons.StringUtils
+import com.nike.cerberus.CerberusGatlingApiActions._
+import com.nike.cerberus.api.CerberusApiActions
+import com.nike.cerberus.api.util.TestUtils
+import groovy.json.internal.LazyMap
 import io.gatling.core.Predef._
 import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
-import com.nike.cerberus.api.CerberusApiActions
-import com.nike.cerberus.api.util.TestUtils
-import groovy.json.internal.LazyMap
 import io.restassured.path.json.JsonPath
-import com.nike.cerberus.CerberusGatlingApiActions._
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -57,6 +73,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   private val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
   private val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
   private val createIamRoles = getPropWithDefaultValue("CREATE_IAM_ROLES", "false").toBoolean
+  private val numberOfLoadServers = getRequiredProperty("NUMBER_LOAD_SERVERS", "number of load servers to divide load numbers by").toInt
 
   before {
     println(
@@ -125,7 +142,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
       val id = idAndPath._1
       val path = idAndPath._2
 
-      VaultDataHelper.writeRandomData(authenticate(currentIamPrincipalArn), path)
+      DataHelper.writeRandomData(authenticate(currentIamPrincipalArn), path)
 
       val data = Map(
         ROLE_ARN -> createdRoleArn,
@@ -279,10 +296,8 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   setUp(
     scn.inject(
       nothingFor(30 seconds), // let the created IAM roles be eventually consistent
-      constantUsersPerSec(peakUsers) during(holdTimeAfterPeakInMinutes + rampUpTimeInMinutes minutes)
-    ).throttle(
-      reachRps(peakUsers) in(rampUpTimeInMinutes minutes),
-      holdFor(holdTimeAfterPeakInMinutes minutes)
+      rampUsersPerSec(1) to peakUsers / numberOfLoadServers during(rampUpTimeInMinutes minutes),
+      constantUsersPerSec(peakUsers / numberOfLoadServers) during(holdTimeAfterPeakInMinutes minutes)
     )
   ).protocols(httpConf)
 
