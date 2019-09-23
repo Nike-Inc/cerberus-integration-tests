@@ -71,6 +71,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   private val holdTimeAfterPeakInMinutes = getPropWithDefaultValue("HOLD_TIME_AFTER_PEAK_IN_MINUTES", "1").toInt
   private val rampUpTimeInMinutes = getPropWithDefaultValue("RAMP_UP_TIME_IN_MINUTES", "1").toInt
   private val cerberusAccountId = getRequiredProperty("CERBERUS_ACCOUNT_ID", "The account id that Cerberus is hosted in")
+  private val ownerGroup = getRequiredProperty("OWNER_GROUP", "The user group to be the owner of the generated SDBs.")
   private val numberOfServicesToUseForSimulation = getPropWithDefaultValue("NUMBER_OF_SERVICES_FOR_SIMULATION", "1").toInt
   private val createIamRoles = getPropWithDefaultValue("CREATE_IAM_ROLES", "false").toBoolean
   private val numberOfLoadServers = getRequiredProperty("NUMBER_LOAD_SERVERS", "number of load servers to divide load numbers by").toInt
@@ -86,6 +87,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         |   CERBERUS_API_URL: $cerberusBaseUrl
         |   CERBERUS_ACCOUNT_ID: $cerberusAccountId
         |   REGION: $region
+        |   OWNER_GROUP: $ownerGroup
         |   NUMBER_OF_SERVICES_FOR_SIMULATION: $numberOfServicesToUseForSimulation
         |   CREATE_IAM_ROLES: $createIamRoles
         |   PEAK_USERS: $peakUsers
@@ -133,9 +135,9 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         authToken,
         currentIamPrincipalArn,
         createdRoleArn,
-        "registered-iam-principals",
+        ownerGroup,
         roleMap("read"),
-        roleMap("write"),
+        roleMap("owner"),
         catMap("Applications")
       )
 
@@ -215,11 +217,11 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
                 simulatedIamPrincipalArn: String,
                 ownerGroup: String,
                 readRoleId: String,
-                writeRoleId: String,
+                ownerRoleId: String,
                 categoryId: String): (String, String) = {
 
     val iamPermissions = List(
-      Map("iam_principal_arn" -> iamPrincipalArnRunningSimulation, "role_id" -> writeRoleId).asJava,
+      Map("iam_principal_arn" -> iamPrincipalArnRunningSimulation, "role_id" -> ownerRoleId).asJava,
       Map("iam_principal_arn" -> simulatedIamPrincipalArn, "role_id" -> readRoleId).asJava
     ).asJava
 
@@ -361,6 +363,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
          |   CERBERUS_API_URL: $cerberusBaseUrl
          |   CERBERUS_ACCOUNT_ID: $cerberusAccountId
          |   REGION: $region
+         |   OWNER_GROUP: $ownerGroup
          |   NUMBER_OF_SERVICES_FOR_SIMULATION: $numberOfServicesToUseForSimulation
          |   CREATE_IAM_ROLES: $createIamRoles
          |   PEAK_USERS: $peakUsers
