@@ -123,6 +123,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
         // Create iam roles and SDBs
         iam = new AmazonIdentityManagementClient().withRegion(Regions.fromName(region))
         for (i <- 1 to numberOfServicesToUseForSimulation) {
+          println(s"Attempting to initiate: retry number $j")
 
           var createdRoleArn = ""
           var createdRoleName = ""
