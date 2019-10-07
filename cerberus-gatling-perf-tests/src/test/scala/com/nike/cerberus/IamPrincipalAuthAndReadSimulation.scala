@@ -45,6 +45,8 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.util.Random
+import scala.util.control.Breaks._
+import scala.util.control.NonFatal
 
 /**
   * Simulation that will create a bunch of SDBs with random secrets and IAM Principals will authenticate and read secrets
@@ -57,6 +59,7 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
   private val SDB_ID = "sdb_id"
   private val SDB_DATA_PATH = "sdb_root_path"
   private val REGION = "region"
+  private val MAX_RETRY = 10
 
   private val generatedData = ArrayBuffer[Map[String, String]]()
   private var iam: AmazonIdentityManagementClient = _
@@ -100,79 +103,99 @@ class IamPrincipalAuthAndReadSimulation extends Simulation {
 
     TestUtils.configureRestAssured()
 
-    // get the arn of the principal running the simulation
-    currentIamPrincipalArn = getArn
-    // Authenticate with Cerberus as the IAM Principal bound to the current AWS credentials
-    val authToken: String = authenticate(currentIamPrincipalArn)
-    val catData: JsonPath = CerberusApiActions.getCategories(authToken)
-    val catMap = mutable.HashMap[String, String]()
-    for (cat <- catData.getList("").asInstanceOf[java.util.List[java.util.Map[String, String]]]) {
-      catMap += (cat("display_name") -> cat("id"))
-    }
-    val roleData: JsonPath = CerberusApiActions.getRoles(authToken)
-    val roleMap = mutable.HashMap[String, String]()
-    for (role <- roleData.getList("").asInstanceOf[java.util.List[java.util.Map[String, String]]]) {
-      roleMap += (role("name") -> role("id"))
-    }
+    breakable { for (j <- 1 to MAX_RETRY) {
+      try {
+        // get the arn of the principal running the simulation
+        currentIamPrincipalArn = getArn
+        // Authenticate with Cerberus as the IAM Principal bound to the current AWS credentials
+        val authToken: String = authenticate(currentIamPrincipalArn)
+        val catData: JsonPath = CerberusApiActions.getCategories(authToken)
+        val catMap = mutable.HashMap[String, String]()
+        for (cat <- catData.getList("").asInstanceOf[java.util.List[java.util.Map[String, String]]]) {
+          catMap += (cat("display_name") -> cat("id"))
+        }
+        val roleData: JsonPath = CerberusApiActions.getRoles(authToken)
+        val roleMap = mutable.HashMap[String, String]()
+        for (role <- roleData.getList("").asInstanceOf[java.util.List[java.util.Map[String, String]]]) {
+          roleMap += (role("name") -> role("id"))
+        }
 
-    // Create iam roles and SDBs
-    iam = new AmazonIdentityManagementClient().withRegion(Regions.fromName(region))
-    for (i <- 1 to numberOfServicesToUseForSimulation) {
+        // Create iam roles and SDBs
+        iam = new AmazonIdentityManagementClient().withRegion(Regions.fromName(region))
+        for (i <- 1 to numberOfServicesToUseForSimulation) {
 
-      var createdRoleArn = ""
-      var createdRoleName = ""
-      if (createIamRoles) {
-        val role: Role = createRole(cerberusAccountId, currentIamPrincipalArn, iam)
-        createdRoleArn = role.getArn
-        createdRoleName = role.getRoleName
-        Thread.sleep(1000)
-      } else {
-        createdRoleArn = currentIamPrincipalArn
-        createdRoleName = currentIamPrincipalArn
+          var createdRoleArn = ""
+          var createdRoleName = ""
+          if (createIamRoles) {
+            val role: Role = createRole(cerberusAccountId, currentIamPrincipalArn, iam)
+            createdRoleArn = role.getArn
+            createdRoleName = role.getRoleName
+            Thread.sleep(1000)
+          } else {
+            createdRoleArn = currentIamPrincipalArn
+            createdRoleName = currentIamPrincipalArn
+          }
+
+          val idAndPath = createSDB(
+            authToken,
+            currentIamPrincipalArn,
+            createdRoleArn,
+            ownerGroup,
+            roleMap("read"),
+            roleMap("owner"),
+            catMap("Applications")
+          )
+
+          val id = idAndPath._1
+          val path = idAndPath._2
+
+          DataHelper.writeRandomData(authenticate(currentIamPrincipalArn), path)
+
+          val data = Map(
+            ROLE_ARN -> createdRoleArn,
+            ROLE_NAME -> createdRoleName,
+            SDB_ID -> id,
+            SDB_DATA_PATH -> path,
+            REGION -> region
+          )
+
+          println(
+            s"""
+               |
+              |######################################################################
+               |# Generated data for service $i of $numberOfServicesToUseForSimulation
+
+               |#########################################################
+
+               |
+              | ROLE_ARN: ${data(ROLE_ARN)}
+
+               | ROLE_NAME: ${
+              data(ROLE_NAME)}
+
+               | SDB_ID: ${data(SDB_ID)}
+
+               | SDB_DATA_PATH: ${data(
+              SDB_DATA_PATH)}
+              | REGION: ${data(REGION)}
+               |
+
+               ############################
+
+          #####################
+               |
+            """.stripMargin)
+
+          generatedData += data
+          break
+        }
+      } catch {
+        case NonFatal(t) =>
+          if (j == MAX_RETRY) {
+            throw t
+          }
       }
-
-      val idAndPath = createSDB(
-        authToken,
-        currentIamPrincipalArn,
-        createdRoleArn,
-        ownerGroup,
-        roleMap("read"),
-        roleMap("owner"),
-        catMap("Applications")
-      )
-
-      val id = idAndPath._1
-      val path = idAndPath._2
-
-      DataHelper.writeRandomData(authenticate(currentIamPrincipalArn), path)
-
-      val data = Map(
-        ROLE_ARN -> createdRoleArn,
-        ROLE_NAME -> createdRoleName,
-        SDB_ID -> id,
-        SDB_DATA_PATH -> path,
-        REGION -> region
-      )
-
-      println(
-        s"""
-          |
-          |######################################################################
-          |# Generated data for service $i of $numberOfServicesToUseForSimulation
-          |######################################################################
-          |
-          | ROLE_ARN: ${data(ROLE_ARN)}
-          | ROLE_NAME: ${data(ROLE_NAME)}
-          | SDB_ID: ${data(SDB_ID)}
-          | SDB_DATA_PATH: ${data(SDB_DATA_PATH)}
-          | REGION: ${data(REGION)}
-          |
-          |######################################################################
-          |
-        """.stripMargin)
-
-      generatedData += data
-    }
+    } }
   }
 
   def getArn: String = {
