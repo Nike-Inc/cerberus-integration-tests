@@ -33,6 +33,12 @@ object CerberusGatlingApiActions {
     )
   ).exec(exitHereIfFailed)
 
+  val authenticate_and_fetch_sts_auth_token_and_store_in_session: ChainBuilder = exec( session =>
+    session.set("auth_token", retrieveStsAuthToken(
+      session("region").as[String])
+    )
+  ).exec(exitHereIfFailed)
+
   val list_all_the_node_keys_for_the_root_sdb_path_and_store_keys_in_session: ChainBuilder = exec(
     http("list all the nodes in the root sdb path")
     .get("/v1/secret/${sdb_root_path}")
