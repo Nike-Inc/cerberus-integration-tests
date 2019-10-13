@@ -5,6 +5,9 @@ import io.gatling.core.structure.ChainBuilder
 import io.gatling.http.Predef._
 import com.nike.cerberus.api.CerberusApiActions._
 
+import scala.collection.JavaConverters._
+import scala.collection.{JavaConverters, Map}
+
 /**
   * Contains the Cerberus actions that are defined using the Gatling DSL for the perf testing
   */
@@ -33,10 +36,12 @@ object CerberusGatlingApiActions {
     )
   ).exec(exitHereIfFailed)
 
-  val authenticate_and_fetch_sts_auth_token_and_store_in_session: ChainBuilder = exec( session =>
-    session.set("auth_token", retrieveStsAuthToken(
-      session("region").as[String])
-    )
+  val authenticate_and_fetch_sts_auth_token_and_store_in_session: ChainBuilder = exec(
+    http("authenticate with iam sts auth")
+      .post("/v2/auth/sts-identity")
+      .headers(JavaConverters.mapAsScalaMapConverter(getSignedHeaders("us-west-2")).asScala.toMap) // todo don't hard code region
+      .check(status.is(200))
+      .check(jsonPath("$.client_token").find.saveAs("auth_token"))
   ).exec(exitHereIfFailed)
 
   val list_all_the_node_keys_for_the_root_sdb_path_and_store_keys_in_session: ChainBuilder = exec(
