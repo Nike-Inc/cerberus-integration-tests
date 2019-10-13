@@ -60,6 +60,7 @@ class StsAuthAndReadSimulation extends Simulation {
   private val SDB_DATA_PATH = "sdb_root_path"
   private val REGION = "region"
   private val MAX_RETRY = 10
+  private val MAX_COOL_DOWN = 1 minutes
 
   private val generatedData = ArrayBuffer[Map[String, String]]()
   private var iam: AmazonIdentityManagementClient = _
@@ -323,7 +324,9 @@ class StsAuthAndReadSimulation extends Simulation {
       rampUsersPerSec(1) to peakUsers / numberOfLoadServers during(rampUpTimeInMinutes minutes),
       constantUsersPerSec(peakUsers / numberOfLoadServers) during(holdTimeAfterPeakInMinutes minutes)
     )
-  ).protocols(httpConf)
+  )
+    .protocols(httpConf)
+    .maxDuration((rampUpTimeInMinutes + holdTimeAfterPeakInMinutes minutes) + MAX_COOL_DOWN)
 
   /**
     * After the simulation is run, delete the randomly created data.
