@@ -38,10 +38,10 @@ object CerberusGatlingApiActions {
 
   val authenticate_and_fetch_sts_auth_token_and_store_in_session: ChainBuilder = exec( session => {
     val map = JavaConverters.mapAsScalaMapConverter(getSignedHeaders(session("region").as[String])).asScala.toMap
-    session.set("header_authorization", map get "Authorization")
-    session.set("x-amz-date_header", map get "X-Amz-Date")
-    session.set("x-amz-security-token_header", map get "X-Amz-Security-Token")
-    session.set("host_header", map get "Host")
+    session.set("header_authorization", map get "Authorization" get)
+      .set("x-amz-date_header", map get "X-Amz-Date" get)
+      .set("x-amz-security-token_header", map get "X-Amz-Security-Token" get)
+      .set("host_header", map get "Host" get)
   }
   ).exec(
     http("authenticate with iam sts auth")
