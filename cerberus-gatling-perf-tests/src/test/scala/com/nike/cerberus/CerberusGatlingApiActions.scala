@@ -36,10 +36,20 @@ object CerberusGatlingApiActions {
     )
   ).exec(exitHereIfFailed)
 
-  val authenticate_and_fetch_sts_auth_token_and_store_in_session: ChainBuilder = exec(
+  val authenticate_and_fetch_sts_auth_token_and_store_in_session: ChainBuilder = exec( session => {
+    val map = JavaConverters.mapAsScalaMapConverter(getSignedHeaders(session("region").as[String])).asScala.toMap
+    session.set("header_authorization", map get "Authorization")
+    session.set("x-amz-date_header", map get "X-Amz-Date")
+    session.set("x-amz-security-token_header", map get "X-Amz-Security-Token")
+    session.set("host_header", map get "Host")
+  }
+  ).exec(
     http("authenticate with iam sts auth")
       .post("/v2/auth/sts-identity")
-      .headers(JavaConverters.mapAsScalaMapConverter(getSignedHeaders("us-west-2")).asScala.toMap) // todo don't hard code region
+      .header("Authorization", "${header_authorization}")
+      .header("X-Amz-Date", "${x-amz-date_header}")
+      .header("X-Amz-Security-Token", "${x-amz-security-token_header}")
+      .header("Host", "${host_header}")
       .check(status.is(200))
       .check(jsonPath("$.client_token").find.saveAs("auth_token"))
   ).exec(exitHereIfFailed)
