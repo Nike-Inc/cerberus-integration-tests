@@ -6,6 +6,12 @@ Environment Variable | Description
 -------------------- | ------------------
 CERBERUS_API_URL     | The Cerberus API URL to Test
 
+When caching is enabled, you may also configure the following environment variable to get around caching
+
+Environment Variable | Default Value | Description
+-------------------- | ------------------
+SLEEP_IN_MILLISECONDS     | 0             | Milliseconds to sleep before executing frequently used API actions
+
 The tests also require that you manually set up an integration test SDB in the environment you are testing.
 (TODO This can probably be automated away with TestNG before suite)
 
