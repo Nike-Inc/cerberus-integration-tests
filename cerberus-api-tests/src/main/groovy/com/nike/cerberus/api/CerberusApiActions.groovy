@@ -7,6 +7,7 @@ import com.amazonaws.services.kms.AWSKMSClient
 import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.services.kms.model.DecryptResult
 import com.amazonaws.util.IOUtils
+import com.fieldju.commons.PropUtils
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import groovy.json.JsonSlurper
@@ -40,6 +41,8 @@ class CerberusApiActions {
     public static String AUTH_TOKEN_HEADER_NAME = "X-Vault-Token"
     public static String USER_CREDENTIALS_HEADER_NAME = "Authorization"
     public static String SAFE_DEPOSIT_BOX_VERSION_PATHS_PATH = "v1/sdb-secret-version-paths"
+    public static int SLEEP_IN_MILLISECONDS = PropUtils.getPropWithDefaultValue("SLEEP_IN_MILLISECONDS",
+            "0").toInteger()
 
     /**
      * Use a cache of KMS clients because creating too many kmsCLients causes a performance bottleneck
@@ -185,6 +188,7 @@ class CerberusApiActions {
     }
 
     static JsonPath readSecretNode(String path, String cerberusAuthToken) {
+        sleep(SLEEP_IN_MILLISECONDS)
         given()
                 .header("X-Vault-Token", cerberusAuthToken)
         .when()
@@ -198,6 +202,7 @@ class CerberusApiActions {
     }
 
     static byte[] readSecureFile(String path, String cerberusAuthToken, byte[] expectedFileBytes, String versionId=null) {
+        sleep(SLEEP_IN_MILLISECONDS)
         String uri = versionId ? "/v1/secure-file/${path}?versionId=${versionId}" : "/v1/secure-file/${path}"
         given()
                 .header("X-Cerberus-Token", cerberusAuthToken)
@@ -498,6 +503,7 @@ class CerberusApiActions {
     }
 
     static JsonPath listSdbs(String cerberusAuthToken, String baseSdbApiPath = V1_SAFE_DEPOSIT_BOX_PATH) {
+        sleep(SLEEP_IN_MILLISECONDS)
         given()
                 .header("X-Vault-Token", cerberusAuthToken)
         .when()
